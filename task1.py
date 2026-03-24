@@ -3,69 +3,124 @@ from PIL import Image, ImageTk
 from gpiozero import Button
 
 
-def show_task1_success(root, clear_screen, go_to_menu):
+def show_task1(root, clear_screen, go_to_menu):
     root.cleanup_gpio()
     clear_screen()
+    root.update_idletasks()
 
-    tk.Label(root, text="Correct!",
-             font=("Arial", 24, "bold"),
-             bg="white", fg="green").pack(pady=40)
+    # Screen size
+    screen_width = root.winfo_width()
+    if screen_width < 100:
+        screen_width = root.winfo_screenwidth()
 
-    tk.Label(root, text="Button pressed successfully.",
-             font=("Arial", 18),
-             bg="white").pack(pady=10)
+    # -------------------------------
+    # Banner (dynamic size)
+    # -------------------------------
+    banner_img = Image.open("task_banner.png")
 
-    tk.Label(root, text="Good job!",
-             font=("Arial", 18),
-             bg="white").pack(pady=10)
+    banner_width = int(screen_width * 0.5)
 
-    tk.Button(root, text="Back to Menu",
-              width=15, height=2,
-              command=go_to_menu).pack(pady=30)
+    bw, bh = banner_img.size
+    scale = banner_width / bw
+    height_boost = 1.2
 
+    banner_height = int(bh * scale * height_boost)
 
-def show_task1(root, clear_screen, go_to_menu):
-    clear_screen()
+    banner_img = banner_img.resize((banner_width, banner_height))
+    banner_photo = ImageTk.PhotoImage(banner_img)
 
-    # ---- Banner ----
-    img = Image.open("task_banner.png")
-    img = img.resize((800, 270))
-    banner = ImageTk.PhotoImage(img)
+    banner_label = tk.Label(root, image=banner_photo, bg="white")
+    banner_label.image = banner_photo
+    banner_label.pack(pady=10)
 
-    banner_label = tk.Label(root, image=banner, bg="white")
-    banner_label.image = banner
-    banner_label.pack(pady=5)
+    # -------------------------------
+    # Title (center)
+    # -------------------------------
+    tk.Label(
+        root,
+        text="TASK 1: CONNECT BUTTON",
+        font=("Arial", 18, "bold"),
+        bg="white"
+    ).pack(pady=10)
 
-    # ---- Title ----
-    tk.Label(root, text="TASK 1: CONNECT BUTTON",
-             font=("Arial", 18, "bold"), bg="white").pack(pady=10)
+    # -------------------------------
+    # Main row under title
+    # same width as banner
+    # -------------------------------
+    content_frame = tk.Frame(root, bg="white", width=banner_width)
+    content_frame.pack(pady=10)
 
-    # ---- Instructions ----
+    left_frame = tk.Frame(content_frame, bg="white")
+    left_frame.pack(side="left", anchor="n")
+
+    spacer = tk.Frame(content_frame, bg="white", width=40)
+    spacer.pack(side="left")
+
+    right_frame = tk.Frame(content_frame, bg="white")
+    right_frame.pack(side="left", anchor="n")
+
+    # -------------------------------
+    # Instructions (left)
+    # -------------------------------
     instructions = [
-        "1. Find button connector on green PCB board",
-        "2. Connect BLACK wire from button → GND on PCB board",
-        "3. Connect RED wire from button → GP17 on PCB board",
+        "1. Find BUTTON connection point and BUTTON_1 on the green PCB board",
+        "2. Take two jumper wires from the box (refer image)",
+        "3. Connect BUTTON_1 and BUTTON connection point with wires",
         "4. Press the button"
     ]
 
+    text_width = int(banner_width * 0.5)
+
     for line in instructions:
-        tk.Label(root, text=line, font=("Arial", 14),
-                 bg="white", anchor="w", justify="left"
-                 ).pack(fill="x", padx=50, pady=2)
+        tk.Label(
+            left_frame,
+            text=line,
+            font=("Arial", 14),
+            bg="white",
+            anchor="w",
+            justify="left",
+            wraplength=text_width
+        ).pack(anchor="w", pady=4)
 
-    tk.Label(root,
-             text="Hint: If you press the button and nothing happens, check wiring and connections",
-             font=("Arial", 12, "italic"),
-             fg="gray",
-             bg="white",
-             justify="left",
-             anchor="w",
-             ).pack(fill="x", padx=50, pady=15)
+    tk.Label(
+        left_frame,
+        text="Hint: If you press the button and nothing happens, check wiring and connections",
+        font=("Arial", 12, "italic"),
+        fg="gray",
+        bg="white",
+        anchor="w",
+        justify="left",
+        wraplength=text_width
+    ).pack(anchor="w", pady=15)
 
-    tk.Button(root, text="Back", width=10, height=2,
-              command=go_to_menu).pack(pady=10)
+    # -------------------------------
+    # Box image (right)
+    # -------------------------------
+    box_img = Image.open("box.png")
 
-    # ---- Real hardware button on GPIO17 ----
+    box_target_width = int(banner_width * 0.4)
+    bw2, bh2 = box_img.size
+    box_target_height = int(bh2 * (box_target_width / bw2))
+
+    box_img = box_img.resize((box_target_width, box_target_height))
+    box_photo = ImageTk.PhotoImage(box_img)
+
+    box_label = tk.Label(right_frame, image=box_photo, bg="white")
+    box_label.image = box_photo
+    box_label.pack()
+
+    # -------------------------------
+    # Back button (center)
+    # -------------------------------
+    tk.Button(
+        root,
+        text="Back",
+        width=10,
+        height=2,
+        command=go_to_menu
+    ).pack(pady=20)
+
+    # -------------------------------
     def show_popup(root):
         popup = tk.Toplevel(root)
         popup.overrideredirect(True)  # remove normal window border

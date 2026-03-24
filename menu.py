@@ -8,14 +8,30 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
     root.cleanup_gpio()
     clear_screen()
 
-    # ---- Banner ----
-    img = Image.open("task_banner.png")
-    img = img.resize((900, 220))
-    banner = ImageTk.PhotoImage(img)
+    # Screen size
+    screen_width = root.winfo_width()
+    if screen_width < 100:
+        screen_width = root.winfo_screenwidth()
 
-    banner_label = tk.Label(root, image=banner, bg="white")
-    banner_label.image = banner
-    banner_label.pack(pady=5)
+    # -------------------------------
+    # Banner (dynamic size)
+    # -------------------------------
+    banner_img = Image.open("task_banner.png")
+
+    banner_width = int(screen_width * 0.5)
+
+    bw, bh = banner_img.size
+    scale = banner_width / bw
+    height_boost = 1.2
+
+    banner_height = int(bh * scale * height_boost)
+
+    banner_img = banner_img.resize((banner_width, banner_height))
+    banner_photo = ImageTk.PhotoImage(banner_img)
+
+    banner_label = tk.Label(root, image=banner_photo, bg="white")
+    banner_label.image = banner_photo
+    banner_label.pack(pady=10)
 
     # ---- Title ----
     tk.Label(root, text="Choose Task",

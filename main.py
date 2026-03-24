@@ -8,7 +8,7 @@ from menu import show_task_menu
 
 
 def cleanup_gpio():
-    for name in ["btn1", "btn2", "btn3", "sig_a", "sig_b" "btn_task1", "led_task2", "led_task3"]:
+    for name in ["btn1", "btn2", "btn3", "sig_a", "sig_b", "btn_task1", "led_task2", "led_task3"]:
         if hasattr(root, name):
             try:
                 getattr(root, name).close()
