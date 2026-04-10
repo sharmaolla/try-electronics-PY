@@ -18,6 +18,13 @@ def cleanup_gpio():
 
 
 def english_selected():
+    root.language = "en"
+    show_task_menu(root, clear_screen, main_menu,
+                   show_task1, show_task2, show_task3)
+
+
+def finnish_selected():
+    root.language = "fi"
     show_task_menu(root, clear_screen, main_menu,
                    show_task1, show_task2, show_task3)
 
@@ -26,7 +33,7 @@ button_english = Button(27, pull_up=True)
 button_suomi = Button(22, pull_up=True)
 
 button_english.when_pressed = lambda: root.after(0, english_selected)
-button_suomi.when_pressed = lambda: root.after(0, show_under_construction)
+button_suomi.when_pressed = lambda: root.after(0, finnish_selected)
 
 
 def clear_screen():
@@ -66,7 +73,7 @@ def main_menu():
 
     tk.Button(root, text="Suomi",
               font=("Arial", 18), width=15, height=2,
-              command=show_under_construction
+              command=finnish_selected
               ).pack(pady=10)
 
 

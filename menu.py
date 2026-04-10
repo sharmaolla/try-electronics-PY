@@ -3,10 +3,29 @@ from gpiozero import Button
 from PIL import Image, ImageTk
 from task1 import show_task1
 
+TEXTS = {
+    "en": {
+        "title": "Choose Task",
+        "task1": "Task 1",
+        "task2": "Task 2",
+        "task3": "Task 3",
+        "back": "Back"
+    },
+    "fi": {
+        "title": "Valitse tehtävä",
+        "task1": "Tehtävä 1",
+        "task2": "Tehtävä 2",
+        "task3": "Tehtävä 3",
+        "back": "Takaisin"
+    }
+}
+
 
 def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3):
     root.cleanup_gpio()
     clear_screen()
+    lang = getattr(root, "language", "en")
+    t = TEXTS[lang]
 
     # Screen size
     screen_width = root.winfo_width()
@@ -14,7 +33,7 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
         screen_width = root.winfo_screenwidth()
 
     # -------------------------------
-    # Banner (dynamic size)
+    # Banner
     # -------------------------------
     banner_img = Image.open("task_banner.png")
 
@@ -34,12 +53,12 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
     banner_label.pack(pady=10)
 
     # ---- Title ----
-    tk.Label(root, text="Choose Task",
+    tk.Label(root, text=t["title"],
              font=("Arial", 20, "bold"),
              bg="white").pack(pady=15)
 
-    # ---- Soft button: Task 1 only ----
-    tk.Button(root, text="Task 1",
+    # ---- Soft button: Task 1----
+    tk.Button(root, text=t["task1"],
               font=("Arial", 16), width=15, height=2,
               command=lambda: show_task1(
                   root,
@@ -47,7 +66,7 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
                   lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
               )
               ).pack(pady=10)
-    tk.Button(root, text="Task 2",
+    tk.Button(root, text=t["task2"],
               font=("Arial", 16), width=15, height=2,
               command=lambda: show_task2(
                   root,
@@ -56,7 +75,7 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
               )
               ).pack(pady=10)
 
-    tk.Button(root, text="Task 3",
+    tk.Button(root, text=t["task3"],
               font=("Arial", 16), width=15, height=2,
               command=lambda: show_task3(
                   root,
@@ -65,11 +84,11 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
               )
               ).pack(pady=10)
 
-    tk.Button(root, text="Back",
+    tk.Button(root, text=t["back"],
               font=("Arial", 12), width=10, height=2,
               command=main_menu).pack(pady=20)
 
-    # ---- Real hardware button: Task 1 only ----
+    # ---- hardware button: Task 1 ----
     btn1 = Button(9, pull_up=True)
     btn1.when_pressed = lambda: root.after(
         0, lambda: show_task1(

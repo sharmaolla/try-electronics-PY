@@ -2,10 +2,39 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from gpiozero import Button
 
+TEXTS = {
+    "en": {
+        "title": "Task 1. Connect button",
+        "instructions": [
+            "1. Find BUTTON connection point and BUTTON_1 on the green PCB board",
+            "2. Take two jumper wires from the box (refer image)",
+            "3. Connect BUTTON_1 and BUTTON connection points with wires",
+            "4. Press the button"
+        ],
+        "hint": "Hint: if you press the button and nothing happens, check wiring and connections",
+        "back": "Back",
+        "correct": "CORRECT!"
+    },
+    "fi": {
+        "title": "Tehtävä 1. Yhdistä painike",
+        "instructions": [
+            "1. Etsi BUTTON-liitäntäkohta ja BUTTON_1 vihreältä PCB-levyltä",
+            "2. Ota kaksi hyppylankaa laatikosta (katso kuva)",
+            "3. Yhdistä BUTTON_1 ja BUTTON-liitäntäkohta johdoilla",
+            "4. Paina painiketta"
+        ],
+        "hint": "Vinkki: Jos painat painiketta eikä mitään tapahdu, tarkista johdot ja liitännät",
+        "back": "Takaisin",
+        "correct": "OIKEIN!"
+    }
+}
+
 
 def show_task1(root, clear_screen, go_to_menu):
     root.cleanup_gpio()
     clear_screen()
+    lang = getattr(root, "language", "en")
+    t = TEXTS[lang]
     root.update_idletasks()
 
     # Screen size
@@ -14,7 +43,7 @@ def show_task1(root, clear_screen, go_to_menu):
         screen_width = root.winfo_screenwidth()
 
     # -------------------------------
-    # Banner (dynamic size)
+    # Banner
     # -------------------------------
     banner_img = Image.open("task_banner.png")
 
@@ -34,18 +63,17 @@ def show_task1(root, clear_screen, go_to_menu):
     banner_label.pack(pady=10)
 
     # -------------------------------
-    # Title (center)
+    # Title
     # -------------------------------
     tk.Label(
         root,
-        text="TASK 1: CONNECT BUTTON",
+        text=t["title"],
         font=("Arial", 18, "bold"),
         bg="white"
     ).pack(pady=10)
 
     # -------------------------------
-    # Main row under title
-    # same width as banner
+
     # -------------------------------
     content_frame = tk.Frame(root, bg="white", width=banner_width)
     content_frame.pack(pady=10)
@@ -60,14 +88,9 @@ def show_task1(root, clear_screen, go_to_menu):
     right_frame.pack(side="left", anchor="n")
 
     # -------------------------------
-    # Instructions (left)
+    # Instructions
     # -------------------------------
-    instructions = [
-        "1. Find BUTTON connection point and BUTTON_1 on the green PCB board",
-        "2. Take two jumper wires from the box (refer image)",
-        "3. Connect BUTTON_1 and BUTTON connection point with wires",
-        "4. Press the button"
-    ]
+    instructions = t["instructions"]
 
     text_width = int(banner_width * 0.5)
 
@@ -84,7 +107,7 @@ def show_task1(root, clear_screen, go_to_menu):
 
     tk.Label(
         left_frame,
-        text="Hint: If you press the button and nothing happens, check wiring and connections",
+        text=t["hint"],
         font=("Arial", 12, "italic"),
         fg="gray",
         bg="white",
@@ -94,7 +117,7 @@ def show_task1(root, clear_screen, go_to_menu):
     ).pack(anchor="w", pady=15)
 
     # -------------------------------
-    # Box image (right)
+    # Box image
     # -------------------------------
     box_img = Image.open("box.png")
 
@@ -110,11 +133,11 @@ def show_task1(root, clear_screen, go_to_menu):
     box_label.pack()
 
     # -------------------------------
-    # Back button (center)
+    # Back button
     # -------------------------------
     tk.Button(
         root,
-        text="Back",
+        text=t["back"],
         width=10,
         height=2,
         command=go_to_menu
@@ -123,7 +146,7 @@ def show_task1(root, clear_screen, go_to_menu):
     # -------------------------------
     def show_popup(root):
         popup = tk.Toplevel(root)
-        popup.overrideredirect(True)  # remove normal window border
+        popup.overrideredirect(True)
 
         width = 320
         height = 200
@@ -157,7 +180,7 @@ def show_task1(root, clear_screen, go_to_menu):
 
         canvas.create_text(
             (width // 2) - 30, height // 2,
-            text="CORRECT!",
+            text=t["correct"],
             font=("Arial", 20, "bold"),
             fill="white"
         )
