@@ -2,6 +2,7 @@ import tkinter as tk
 from gpiozero import Button
 from PIL import Image, ImageTk
 from task1 import show_task1
+from game import show_game
 
 TEXTS = {
     "en": {
@@ -9,6 +10,7 @@ TEXTS = {
         "task1": "Task 1",
         "task2": "Task 2",
         "task3": "Task 3",
+        "game": "Game",
         "back": "Back"
     },
     "fi": {
@@ -16,6 +18,7 @@ TEXTS = {
         "task1": "Tehtävä 1",
         "task2": "Tehtävä 2",
         "task3": "Tehtävä 3",
+        "game": "Peli",
         "back": "Takaisin"
     }
 }
@@ -78,6 +81,15 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
     tk.Button(root, text=t["task3"],
               font=("Arial", 16), width=15, height=2,
               command=lambda: show_task3(
+                  root,
+                  clear_screen,
+                  lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
+              )
+              ).pack(pady=10)
+
+    tk.Button(root, text=t["game"],
+              font=("Arial", 16), width=15, height=2,
+              command=lambda: show_game(
                   root,
                   clear_screen,
                   lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
