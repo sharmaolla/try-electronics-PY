@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 from gpiozero import Button, LED, PWMLED
 import json
 import os
+import time
 
 TEXTS = {
     "en": {
@@ -11,7 +12,8 @@ TEXTS = {
         "description_title": "DESCRIPTION of the game",
         "description_text": (
             "Complete Task 1, Task 2 and Task 3 in order.\n\n"
-            "Enter your name and press START to begin.\n\n\n"
+            "Enter your name and press START to begin.\n"
+            "(use a unique name or add numbers, e.g. John1)"
         ),
         "task1_title": "Task 1. Connect button",
         "task1_instructions": [
@@ -21,6 +23,7 @@ TEXTS = {
             "4. Press the button"
         ],
         "task1_hint": "Hint: if you press the button and nothing happens, check wiring and connections",
+
         "task2_title": "Task 2. Connect resistor and turn LED light on",
         "task2_instructions": [
             "1. Find RESISTOR in the box (refer image)",
@@ -30,12 +33,14 @@ TEXTS = {
         "task2_hint": "Hint: you can insert RESISTOR either way, try both ways.",
         "task2_connected": "CONNECTED ✅ 😊",
         "task2_not_connected": "NOT CONNECTED ❌ ☹️",
+
         "task3_title": "Task 3. Connect encoder and change LED brightness",
         "task3_instructions": [
             "1. Find ENCODER in the box (refer image)",
             "2. Insert it into the encoder connection point on the green PCB board",
-            "3. Turn the knob left and right",
-            "4. If connected correctly, the LED brightness will change"
+            "3. Turn the knob left until LED reaches full brightness",
+            "4. Then turn it back until LED is off again",
+            "5. If connected correctly, the LED brightness will change"
         ],
         "task3_hint": "Hint: Encoder has a 4-wire cable",
         "brightness": "Brightness Level",
@@ -53,7 +58,8 @@ TEXTS = {
         "description_title": "Pelin kuvaus",
         "description_text": (
             "Suorita Tehtävä 1, Tehtävä 2 ja Tehtävä 3 järjestyksessä.\n\n"
-            "Kirjoita nimesi ja paina START."
+            "Kirjoita nimesi ja paina START.\n"
+            "(käytä yksilöllistä nimeä tai lisää numero, esim. Ulla1)"
         ),
         "task1_title": "Tehtävä 1. Yhdistä painike",
         "task1_instructions": [
@@ -76,8 +82,9 @@ TEXTS = {
         "task3_instructions": [
             "1. Etsi ENCODER laatikosta (katso kuva)",
             "2. Aseta se encoderin liitäntäkohtaan vihreällä PCB-levyllä",
-            "3. Käännä nuppia vasemmalle ja oikealle",
-            "4. Jos kytkentä on oikein, LED-valon kirkkaus muuttuu"
+            "3. Käännä nuppia vasemmalle, kunnes LED saavuttaa täyden kirkkauden",
+            "4. Käännä sitten takaisin, kunnes LED sammuu",
+            "5. Jos kytkentä on oikein, LED-valon kirkkaus muuttuu"
         ],
         "task3_hint": "Vinkki: Encoderissa on 4-johtiminen kaapeli",
         "brightness": "Kirkkaustaso",
@@ -93,7 +100,7 @@ TEXTS = {
 }
 
 
-def save_player_name(player_name):
+def save_result(player_name, game_time):
     file_path = "players.json"
     players = []
 
@@ -104,10 +111,21 @@ def save_player_name(player_name):
         except (json.JSONDecodeError, FileNotFoundError):
             players = []
 
-    players.append({"name": player_name})
+    valid_players = []
+    for p in players:
+        if isinstance(p, dict) and "name" in p and "time" in p:
+            valid_players.append(p)
+
+    valid_players.append({
+        "name": player_name,
+        "time": round(game_time, 1)
+    })
+
+    valid_players = sorted(valid_players, key=lambda x: x["time"])
+    valid_players = valid_players[:5]
 
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(players, f, indent=4, ensure_ascii=False)
+        json.dump(valid_players, f, indent=4, ensure_ascii=False)
 
 
 def show_game(root, clear_screen, go_to_menu):
@@ -156,6 +174,14 @@ def show_game(root, clear_screen, go_to_menu):
     tasks_frame = tk.Frame(root, bg="white")
     tasks_frame.pack(pady=(0, 18))
 
+    timer_label = tk.Label(
+        root,
+        text="Time: 0.0 s",
+        font=("Arial", 16, "bold"),
+        bg="white",
+        fg="black"
+    )
+
     task1_box = tk.Label(
         tasks_frame,
         text=t["task1"],
@@ -193,20 +219,88 @@ def show_game(root, clear_screen, go_to_menu):
     task3_box.pack(side="left", padx=10)
 
     # -------------------------------
-    # Main dynamic content area
+    # Main content area
     # -------------------------------
     content_frame = tk.Frame(root, bg="white")
     content_frame.pack(pady=10)
 
     # -------------------------------
-    # Helper functions
+    # functions
     # -------------------------------
     def clear_content():
         for widget in content_frame.winfo_children():
             widget.destroy()
 
+    timer_job = [None]
+
+    def update_timer():
+        if hasattr(root, "start_time") and root.start_time is not None:
+            if not timer_label.winfo_exists():
+                return
+
+            elapsed = time.time() - root.start_time
+            timer_label.config(text=f"Time: {elapsed:.1f} s")
+
+            timer_job[0] = root.after(100, update_timer)
+
+    def stop_timer():
+        if timer_job[0] is not None:
+            root.after_cancel(timer_job[0])
+            timer_job[0] = None
+
+    def show_result_screen(player_name, total_time):
+        clear_content()
+
+        tk.Label(
+            content_frame,
+            text=f"{player_name}, your time: {total_time:.1f} s",
+            font=("Arial", 20, "bold"),
+            bg="white",
+            fg="black"
+        ).pack(pady=(20, 20))
+
+        tk.Label(
+            content_frame,
+            text="TOP 5 RESULTS",
+            font=("Arial", 16, "bold"),
+            bg="white"
+        ).pack(pady=(10, 10))
+
+        table_frame = tk.Frame(content_frame, bg="white")
+        table_frame.pack(pady=10)
+
+        file_path = "players.json"
+        players = []
+
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    players = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                players = []
+
+        tk.Label(table_frame, text="Rank", font=("Arial", 13, "bold"), bg="white", width=8).grid(row=0, column=0,
+                                                                                                 padx=8, pady=4)
+        tk.Label(table_frame, text="Name", font=("Arial", 13, "bold"), bg="white", width=16).grid(row=0, column=1,
+                                                                                                  padx=8, pady=4)
+        tk.Label(table_frame, text="Time", font=("Arial", 13, "bold"), bg="white", width=10).grid(row=0, column=2,
+                                                                                                  padx=8, pady=4)
+
+        for i, player in enumerate(players[:5], start=1):
+            tk.Label(table_frame, text=str(i), font=("Arial", 12), bg="white", width=8).grid(row=i, column=0, padx=8,
+                                                                                             pady=4)
+            tk.Label(table_frame, text=player["name"], font=("Arial", 12), bg="white", width=16).grid(row=i, column=1,
+                                                                                                      padx=8, pady=4)
+            tk.Label(table_frame, text=f'{player["time"]:.1f} s', font=("Arial", 12), bg="white", width=10).grid(row=i,
+                                                                                                                 column=2,
+                                                                                                                 padx=8,
+                                                                                                                 pady=4)
+
     def show_description():
         clear_content()
+
+        timer_label.pack_forget()
+        stop_timer()
 
         desc_frame = tk.Frame(content_frame, bg="white")
         desc_frame.pack()
@@ -260,7 +354,9 @@ def show_game(root, clear_screen, go_to_menu):
                 return
 
             root.player_name = player_name
-            save_player_name(player_name)
+            root.start_time = time.time()
+            timer_label.pack(pady=(0, 12))
+            update_timer()
 
             show_task1()
 
@@ -342,7 +438,6 @@ def show_game(root, clear_screen, go_to_menu):
         task1_box.config(bg="light gray")
         task2_box.config(bg="light gray")
         task3_box.config(bg="light gray")
-
 
         task1_frame = tk.Frame(content_frame, bg="white")
         task1_frame.pack()
@@ -513,8 +608,9 @@ def show_game(root, clear_screen, go_to_menu):
             root.after(200, check_connection)
 
         check_connection()
-# task 3
-#-----------------------------------------------------
+
+    # task 3
+    # -----------------------------------------------------
     def show_task3():
         clear_content()
 
@@ -606,7 +702,9 @@ def show_game(root, clear_screen, go_to_menu):
         root.sig_b = sig_b
 
         brightness = [0]
-        encoder_used = [False]
+        reached_full = [False]
+        returned_to_zero = [False]
+        task3_completed = [False]
 
         def adjust_brightness():
             if sig_b.is_pressed:
@@ -621,13 +719,32 @@ def show_game(root, clear_screen, go_to_menu):
 
             print("Brightness:", brightness[0])
 
-            if not encoder_used[0]:
-                encoder_used[0] = True
+            if brightness[0] >= 1:
+                reached_full[0] = True
+
+            if reached_full[0] and brightness[0] <= 0.0:
+                returned_to_zero[0] = True
+
+            if reached_full[0] and returned_to_zero[0] and not task3_completed[0]:
+                task3_completed[0] = True
                 root.task3_done = True
                 task3_box.config(bg="#ADD8E6")
 
-        sig_a.when_pressed = adjust_brightness
+                root.end_time = time.time()
+                total_time = root.end_time - root.start_time
 
+                player_name = getattr(root, "player_name", "Player")
+                save_result(player_name, total_time)
+
+                stop_timer()
+                timer_label.pack_forget()
+
+                # SHOW RESULT
+                player_name = getattr(root, "player_name", "Player")
+
+                show_result_screen(player_name, total_time)
+
+        sig_a.when_pressed = adjust_brightness
 
     # -------------------------------
     # Back button
