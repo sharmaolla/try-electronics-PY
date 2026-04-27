@@ -13,7 +13,9 @@ TEXTS = {
         ],
         "hint": "Hint: Encoder has a 4-wire cable",
         "brightness": "Brightness Level",
-        "back": "Back"
+        "main": "Main",
+        "task1": "Task 1",
+        "task2": "Task 2",
     },
     "fi": {
         "title": "Tehtävä 3. Kytke ENCODER ja muuta valon kirkkautta",
@@ -25,12 +27,15 @@ TEXTS = {
         ],
         "hint": "Vinkki: Encoderissa on 4-johtiminen kaapeli",
         "brightness": "Kirkkaustaso",
-        "back": "Takaisin"
+        "main": "Etusivu",
+        "task1": "Tehtävä 1",
+        "task2": "Tehtävä 2",
     }
 }
 
 
 def show_task3(root, clear_screen, go_to_menu):
+    root.screen = "task3"
     root.cleanup_gpio()
     clear_screen()
     lang = getattr(root, "language", "en")
@@ -143,24 +148,44 @@ def show_task3(root, clear_screen, go_to_menu):
     fill_bar = bar_canvas.create_rectangle(20, 5, 20, 25, fill="skyblue", outline="")
 
     # -------------------------------
-    # Back button
+    #  buttons
     # -------------------------------
+    nav_frame = tk.Frame(root, bg="white")
+    nav_frame.pack(pady=20)
+
     tk.Button(
-        root,
-        text=t["back"],
+        nav_frame,
+        text=t["main"],
         width=10,
         height=2,
-        command=go_to_menu
-    ).pack(pady=20)
+        bg="skyblue",
+        command=root.go_main
+    ).pack(side="left", padx=8)
+
+    tk.Button(
+        nav_frame,
+        text=t["task1"],
+        width=10,
+        height=2,
+        command=root.go_task1
+    ).pack(side="left", padx=8)
+
+    tk.Button(
+        nav_frame,
+        text=t["task2"],
+        width=10,
+        height=2,
+        command=root.go_task2
+    ).pack(side="left", padx=8)
 
     # -------------------------------
     # ----  LED - GPIO 21 ----
-    led_task3 = PWMLED(21)
+    led_task3 = PWMLED(12)
     led_task3.value = 0
     root.led_task3 = led_task3
 
-    sig_a = Button(20, pull_up=True)
-    sig_b = Button(16, pull_up=True)
+    sig_a = Button(27, pull_up=True)
+    sig_b = Button(17, pull_up=True)
 
     root.sig_a = sig_a
     root.sig_b = sig_b

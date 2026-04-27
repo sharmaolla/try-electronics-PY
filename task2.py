@@ -11,7 +11,9 @@ TEXTS = {
             "3. If connected correctly the resistor will be detected"
         ],
         "hint": "Hint: you can insert RESISTOR either way, try both ways.",
-        "back": "Back",
+        "main": "Main",
+        "task1": "Task 1",
+        "task3": "Task 3",
         "connected": "CONNECTED ✅ 😊",
         "not_connected": "NOT CONNECTED ❌ ☹️"
 
@@ -24,7 +26,9 @@ TEXTS = {
             "3. Jos kytkentä on oikein, vastus tunnistetaan"
         ],
         "hint": "Vinkki: Voit laittaa vastuksen kumpaan suuntaan tahansa – kokeile molempia",
-        "back": "Takaisin",
+        "main": "Etusivu",
+        "task1": "Tehtävä 1",
+        "task3": "Tehtävä 3",
         "connected": "KYTKETTY ✅ 😊",
         "not_connected": "EI KYTKETTY ❌ ☹️"
     }
@@ -32,6 +36,7 @@ TEXTS = {
 
 
 def show_task2(root, clear_screen, go_to_menu):
+    root.screen = "task2"
     root.cleanup_gpio()
     clear_screen()
 
@@ -113,13 +118,33 @@ def show_task2(root, clear_screen, go_to_menu):
     box_label.image = box_photo
     box_label.pack()
 
+    nav_frame = tk.Frame(root, bg="white")
+    nav_frame.pack(pady=20)
+
     tk.Button(
-        root,
-        text=t["back"],
+        nav_frame,
+        text=t["main"],
         width=10,
         height=2,
-        command=go_to_menu
-    ).pack(pady=20)
+        bg="skyblue",
+        command=root.go_main
+    ).pack(side="left", padx=8)
+
+    tk.Button(
+        nav_frame,
+        text=t["task1"],
+        width=10,
+        height=2,
+        command=root.go_task1
+    ).pack(side="left", padx=8)
+
+    tk.Button(
+        nav_frame,
+        text=t["task3"],
+        width=10,
+        height=2,
+        command=root.go_task3
+    ).pack(side="left", padx=8)
 
     status_label = tk.Label(
         root,
@@ -129,12 +154,15 @@ def show_task2(root, clear_screen, go_to_menu):
     )
     status_label.pack(pady=10)
 
-    sensor = Button(26, pull_up=True)
+    sensor = Button(18, pull_up=True)
     root.sensor = sensor
-    led_task2 = LED(21)
+    led_task2 = LED(12)
     root.led_task2 = led_task2
 
     def check_connection():
+        if not hasattr(root, "sensor") or root.sensor != sensor:
+            return
+
         if sensor.is_pressed:
             status_label.config(
                 text=t["connected"],

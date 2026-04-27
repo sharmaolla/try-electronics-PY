@@ -25,6 +25,7 @@ TEXTS = {
 
 
 def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3):
+    root.screen = "menu"
     root.cleanup_gpio()
     clear_screen()
     lang = getattr(root, "language", "en")
@@ -98,36 +99,43 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
 
     tk.Button(root, text=t["back"],
               font=("Arial", 12), width=10, height=2,
-              command=main_menu).pack(pady=20)
+              command=lambda: (root.cleanup_gpio(), main_menu())).pack(pady=20)
 
     # ---- hardware button: Task 1 ----
-    btn1 = Button(9, pull_up=True)
-    btn1.when_pressed = lambda: root.after(
-        0, lambda: show_task1(
-            root,
-            clear_screen,
-            lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
-        )
-    )
+    # btn1 = Button(2, pull_up=True, bounce_time=0.3)
+    # btn1.when_pressed = lambda: root.after(
+    #     0, lambda: show_task1(
+    #         root,
+    #         clear_screen,
+    #         lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
+    #     )
+    # )
 
-    root.btn1 = btn1
+    # root.btn1 = btn1
 
-    btn2 = Button(6, pull_up=True)
-    btn2.when_pressed = lambda: root.after(
-        0, lambda: show_task2(
-            root,
-            clear_screen,
-            lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
-        )
-    )
-    root.btn2 = btn2
+    # btn2 = Button(3, pull_up=True, bounce_time=0.3)
+    # btn2.when_pressed = lambda: root.after(
+    #     0, lambda: show_task2(
+    #         root,
+    #         clear_screen,
+    #         lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
+    #     )
+    # )
+    # root.btn2 = btn2
 
-    btn3 = Button(19, pull_up=True)
-    btn3.when_pressed = lambda: root.after(
-        0, lambda: show_task3(
-            root,
-            clear_screen,
-            lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
-        )
-    )
-    root.btn3 = btn3
+    # btn3 = Button(4, pull_up=True, bounce_time=0.3)
+    # btn3.when_pressed = lambda: root.after(
+    #     0, lambda: show_task3(
+    #         root,
+    #         clear_screen,
+    #         lambda: show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_task3)
+    #     )
+    # )
+    # root.btn3 = btn3
+
+    # btn_back = Button(6, pull_up=True)
+    # btn_back.when_pressed = lambda: root.after(
+    #     0, lambda: (root.cleanup_gpio(), main_menu())
+    # )
+
+    # root.btn_back = btn_back

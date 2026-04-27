@@ -1,6 +1,8 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 from gpiozero import Button
+from task2 import show_task2
+from task3 import show_task3
 
 TEXTS = {
     "en": {
@@ -12,7 +14,9 @@ TEXTS = {
             "4. Press the button"
         ],
         "hint": "Hint: if you press the button and nothing happens, check wiring and connections",
-        "back": "Back",
+        "main": "Main",
+        "task2": "Task 2",
+        "task3": "Task 3",
         "correct": "CORRECT!"
     },
     "fi": {
@@ -24,13 +28,16 @@ TEXTS = {
             "4. Paina painiketta"
         ],
         "hint": "Vinkki: Jos painat painiketta eikä mitään tapahdu, tarkista johdot ja liitännät",
-        "back": "Takaisin",
+        "main": "Etusivu",
+        "task2": "Tehtävä 2",
+        "task3": "Tehtävä 3",
         "correct": "OIKEIN!"
     }
 }
 
 
 def show_task1(root, clear_screen, go_to_menu):
+    root.screen = "task1"
     root.cleanup_gpio()
     clear_screen()
     lang = getattr(root, "language", "en")
@@ -133,15 +140,56 @@ def show_task1(root, clear_screen, go_to_menu):
     box_label.pack()
 
     # -------------------------------
-    # Back button
+    # Buttons
     # -------------------------------
+    nav_frame = tk.Frame(root, bg="white")
+    nav_frame.pack(pady=20)
+
     tk.Button(
-        root,
-        text=t["back"],
+        nav_frame,
+        text=t["main"],
         width=10,
         height=2,
-        command=go_to_menu
-    ).pack(pady=20)
+        bg="skyblue",
+        command=root.go_main
+    ).pack(side="left", padx=8)
+
+    tk.Button(
+        nav_frame,
+        text=t["task2"],
+        width=10,
+        height=2,
+        command=root.go_task1
+    ).pack(side="left", padx=8)
+
+    tk.Button(
+        nav_frame,
+        text=t["task3"],
+        width=10,
+        height=2,
+        command=root.go_task3
+    ).pack(side="left", padx=8)
+
+    # --- buttons TASK 2 and TASK 3
+    # btn2 = Button(3, pull_up=True, bounce_time=0.3)
+    # btn3 = Button(4, pull_up=True, bounce_time=0.3)
+
+    # btn2.when_pressed = lambda: root.after(
+    #     0, lambda: show_task2(root, clear_screen, root.go_main)
+    # )
+
+    # btn3.when_pressed = lambda: root.after(
+    #     0, lambda: show_task3(root, clear_screen, root.go_main)
+    # )
+
+    # root.btn2 = btn2
+    # root.btn3 = btn3
+
+    # btn_back = Button(6, pull_up=True)
+
+    # btn_back.when_pressed = lambda: root.after(0, root.go_main)
+
+    # root.btn_back = btn_back
 
     # -------------------------------
     def show_popup(root):
@@ -188,10 +236,10 @@ def show_task1(root, clear_screen, go_to_menu):
         popup.after(1000, popup.destroy)
 
     def on_task1_pressed():
-        print("GP 17 pressed")
+        print("GP 14 pressed")
         root.after(0, lambda: show_popup(root))
 
-    btn_task1 = Button(17, pull_up=True)
+    btn_task1 = Button(14, pull_up=True)
 
     btn_task1.when_pressed = on_task1_pressed
 
