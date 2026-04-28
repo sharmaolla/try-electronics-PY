@@ -1,8 +1,10 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 from gpiozero import Button
-from task2 import show_task2
-from task3 import show_task3
+
+GREY_BG = "#EEEEEE"
+
+
 
 TEXTS = {
     "en": {
@@ -40,99 +42,131 @@ def show_task1(root, clear_screen, go_to_menu):
     root.screen = "task1"
     root.cleanup_gpio()
     clear_screen()
+
     lang = getattr(root, "language", "en")
     t = TEXTS[lang]
+
     root.update_idletasks()
 
-    # Screen size
     screen_width = root.winfo_width()
+    screen_height = root.winfo_height()
+
     if screen_width < 100:
         screen_width = root.winfo_screenwidth()
 
+    if screen_height < 100:
+        screen_height = root.winfo_screenheight()
+
+    scale = min(screen_width / 1000, screen_height / 600)
+    scale = max(0.55, min(scale, 1.25))
+
+    def font(size, bold=False, italic=False):
+        real_size = max(9, int(size * scale))
+
+        style = []
+        if bold:
+            style.append("bold")
+        if italic:
+            style.append("italic")
+
+        if style:
+            return ("Arial", real_size, " ".join(style))
+
+        return ("Arial", real_size)
+
+    main_frame = tk.Frame(root, bg="white")
+    main_frame.pack(expand=True, fill="both")
+
     # -------------------------------
-    # Banner
+    # Banner - same style as menu
     # -------------------------------
     banner_img = Image.open("task_banner.png")
 
-    banner_width = int(screen_width * 0.5)
+    banner_width = int(screen_width * 0.50)
 
     bw, bh = banner_img.size
-    scale = banner_width / bw
-    height_boost = 1.2
+    img_scale = banner_width / bw
+    banner_height = int(bh * img_scale * 1.25)
 
-    banner_height = int(bh * scale * height_boost)
+    max_banner_height = int(screen_height * 0.4)
 
-    banner_img = banner_img.resize((banner_width, banner_height))
+    if banner_height > max_banner_height:
+        img_scale = max_banner_height / bh
+        banner_width = int(bw * img_scale)
+        banner_height = max_banner_height
+
+    banner_img = banner_img.resize((banner_width, banner_height), Image.LANCZOS)
     banner_photo = ImageTk.PhotoImage(banner_img)
 
-    banner_label = tk.Label(root, image=banner_photo, bg="white")
+    banner_label = tk.Label(main_frame, image=banner_photo, bg="white")
     banner_label.image = banner_photo
-    banner_label.pack(pady=10)
+    banner_label.pack(pady=(int(6 * scale), int(4 * scale)))
 
     # -------------------------------
     # Title
     # -------------------------------
     tk.Label(
-        root,
+        main_frame,
         text=t["title"],
-        font=("Arial", 18, "bold"),
-        bg="white"
-    ).pack(pady=10)
+        font=font(18, bold=True),
+        bg=GREY_BG
+    ).pack(pady=(int(4 * scale), int(6 * scale)))
 
+   # -------------------------------
+    # Content aligned with banner
     # -------------------------------
+    content_frame = tk.Frame(main_frame, bg="white")
+    content_frame.pack(pady=int(5 * scale), padx=int(screen_width * 0.25))
 
-    # -------------------------------
-    content_frame = tk.Frame(root, bg="white", width=banner_width)
-    content_frame.pack(pady=10)
+    text_width = int(banner_width * 0.50)
 
     left_frame = tk.Frame(content_frame, bg="white")
-    left_frame.pack(side="left", anchor="n")
-
-    spacer = tk.Frame(content_frame, bg="white", width=40)
-    spacer.pack(side="left")
+    left_frame.pack(side="left", anchor="n", padx=(0, int(banner_width * 0.03)))
 
     right_frame = tk.Frame(content_frame, bg="white")
     right_frame.pack(side="left", anchor="n")
 
-    # -------------------------------
-    # Instructions
-    # -------------------------------
-    instructions = t["instructions"]
-
-    text_width = int(banner_width * 0.5)
-
-    for line in instructions:
+    for line in t["instructions"]:
         tk.Label(
             left_frame,
             text=line,
-            font=("Arial", 14),
+            font=font(14),
             bg="white",
             anchor="w",
             justify="left",
             wraplength=text_width
-        ).pack(anchor="w", pady=4)
+        ).pack(anchor="w", pady=int(3 * scale))
 
     tk.Label(
         left_frame,
         text=t["hint"],
-        font=("Arial", 12, "italic"),
+        font=font(12, italic=True),
         fg="gray",
         bg="white",
         anchor="w",
         justify="left",
         wraplength=text_width
-    ).pack(anchor="w", pady=15)
+    ).pack(anchor="w", pady=int(12 * scale))
 
     # -------------------------------
     # Box image
     # -------------------------------
     box_img = Image.open("box.png")
 
-    box_target_width = int(banner_width * 0.4)
-    bw2, bh2 = box_img.size
-    box_target_height = int(bh2 * (box_target_width / bw2))
+    max_box_height = int(screen_height * 0.40)
 
-    box_img = box_img.resize((box_target_width, box_target_height))
+    bw2, bh2 = box_img.size
+    box_target_width = int(banner_width * 0.52)
+
+    box_scale = box_target_width / bw2
+    box_target_height = int(bh2 * box_scale)
+
+    if box_target_height > max_box_height:
+        box_scale = max_box_height / bh2
+        box_target_width = int(bw2 * box_scale)
+        box_target_height = max_box_height
+
+    box_img = box_img.resize((box_target_width, box_target_height), Image.LANCZOS)
     box_photo = ImageTk.PhotoImage(box_img)
 
     box_label = tk.Label(right_frame, image=box_photo, bg="white")
@@ -142,55 +176,42 @@ def show_task1(root, clear_screen, go_to_menu):
     # -------------------------------
     # Buttons
     # -------------------------------
-    nav_frame = tk.Frame(root, bg="white")
-    nav_frame.pack(pady=20)
+    nav_frame = tk.Frame(main_frame, bg="white")
+    nav_frame.pack(pady=int(14 * scale))
+
+    btn_width = max(8, int(10 * scale))
+    btn_height = 2 if screen_height > 500 else 1
 
     tk.Button(
         nav_frame,
         text=t["main"],
-        width=10,
-        height=2,
+        font=font(12),
+        width=btn_width,
+        height=btn_height,
         bg="skyblue",
         command=root.go_main
-    ).pack(side="left", padx=8)
+    ).pack(side="left", padx=int(8 * scale))
 
     tk.Button(
         nav_frame,
         text=t["task2"],
-        width=10,
-        height=2,
-        command=root.go_task1
-    ).pack(side="left", padx=8)
+        font=font(12),
+        width=btn_width,
+        height=btn_height,
+        command=root.go_task2
+    ).pack(side="left", padx=int(8 * scale))
 
     tk.Button(
         nav_frame,
         text=t["task3"],
-        width=10,
-        height=2,
+        font=font(12),
+        width=btn_width,
+        height=btn_height,
         command=root.go_task3
-    ).pack(side="left", padx=8)
+    ).pack(side="left", padx=int(8 * scale))
 
-    # --- buttons TASK 2 and TASK 3
-    # btn2 = Button(3, pull_up=True, bounce_time=0.3)
-    # btn3 = Button(4, pull_up=True, bounce_time=0.3)
-
-    # btn2.when_pressed = lambda: root.after(
-    #     0, lambda: show_task2(root, clear_screen, root.go_main)
-    # )
-
-    # btn3.when_pressed = lambda: root.after(
-    #     0, lambda: show_task3(root, clear_screen, root.go_main)
-    # )
-
-    # root.btn2 = btn2
-    # root.btn3 = btn3
-
-    # btn_back = Button(6, pull_up=True)
-
-    # btn_back.when_pressed = lambda: root.after(0, root.go_main)
-
-    # root.btn_back = btn_back
-
+    # -------------------------------
+    # Popup
     # -------------------------------
     def show_popup(root):
         popup = tk.Toplevel(root)
@@ -199,17 +220,22 @@ def show_task1(root, clear_screen, go_to_menu):
         width = 320
         height = 200
 
-        screen_width = popup.winfo_screenwidth()
-        screen_height = popup.winfo_screenheight()
+        screen_w = popup.winfo_screenwidth()
+        screen_h = popup.winfo_screenheight()
 
-        x = int((screen_width / 2) - (width / 2))
-        y = int((screen_height / 2) - (height / 2))
+        x = int((screen_w / 2) - (width / 2))
+        y = int((screen_h / 2) - (height / 2))
 
         popup.geometry(f"{width}x{height}+{x}+{y}")
         popup.configure(bg="white")
 
-        canvas = tk.Canvas(popup, width=width, height=height,
-                           bg="white", highlightthickness=0)
+        canvas = tk.Canvas(
+            popup,
+            width=width,
+            height=height,
+            bg="white",
+            highlightthickness=0
+        )
         canvas.pack()
 
         points = [
@@ -227,7 +253,8 @@ def show_task1(root, clear_screen, go_to_menu):
         )
 
         canvas.create_text(
-            (width // 2) - 30, height // 2,
+            (width // 2) - 30,
+            height // 2,
             text=t["correct"],
             font=("Arial", 20, "bold"),
             fill="white"
@@ -240,7 +267,7 @@ def show_task1(root, clear_screen, go_to_menu):
         root.after(0, lambda: show_popup(root))
 
     btn_task1 = Button(14, pull_up=True)
-
     btn_task1.when_pressed = on_task1_pressed
-
     root.btn_task1 = btn_task1
+
+

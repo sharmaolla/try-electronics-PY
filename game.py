@@ -1,10 +1,24 @@
 import tkinter as tk
-from tkinter import messagebox
 from PIL import Image, ImageTk
 from gpiozero import Button, LED, PWMLED
 import json
 import os
 import time
+
+TASK_BLOCK_BG = "#EEEEEE"
+TASK_DONE_BG = "#87CEEB"
+result_bg = "white"
+result_fg = "#0B3D91"  # dark blue
+GREY_BG = "#EEEEEE"
+
+# -------------------------------
+# PCB pins
+# -------------------------------
+TASK1_PIN = 14
+TASK2_SENSOR_PIN = 18
+LED_PIN = 12
+ROT_A_PIN = 27
+ROT_B_PIN = 17
 
 TEXTS = {
     "en": {
@@ -38,7 +52,7 @@ TEXTS = {
         "task3_instructions": [
             "1. Find ENCODER in the box (refer image)",
             "2. Insert it into the encoder connection point on the green PCB board",
-            "3. Turn the knob left until LED reaches full brightness",
+            "3. Turn the knob right until LED reaches full brightness",
             "4. Then turn it back until LED is off again",
             "5. If connected correctly, the LED brightness will change"
         ],
@@ -50,9 +64,17 @@ TEXTS = {
         "start": "START",
         "back": "Back",
         "enter_name": "Enter your name",
-        "name_required": "Please enter your name.",
-        "correct": "CORRECT!"
+        "correct": "CORRECT!",
+        "result_time": "\n{name}, your time:   {time}",
+        "rank": "Rank",
+        "name": "Name",
+        "time": "Time",
+        "anonymous": "Anonymous",
+        "today_results": "★ DAY {day} TOP 5 ★",
+        "overall_results": "★ OVERALL TOP 5 ★",
+        "player_ranks": "Day rank: #{day_rank}    Overall rank: #{overall_rank}\n"
     },
+
     "fi": {
         "main_title": "PELATAAN PELIÄ",
         "description_title": "Pelin kuvaus",
@@ -69,6 +91,7 @@ TEXTS = {
             "4. Paina painiketta"
         ],
         "task1_hint": "Vinkki: Jos painat painiketta eikä mitään tapahdu, tarkista johdot ja liitännät",
+
         "task2_title": "Tehtävä 2. Kytke vastus ja sytytä LED-valo",
         "task2_instructions": [
             "1. Etsi vastus (RESISTOR) laatikosta (katso kuva)",
@@ -78,11 +101,12 @@ TEXTS = {
         "task2_hint": "Vinkki: Voit laittaa vastuksen kumpaan suuntaan tahansa – kokeile molempia",
         "task2_connected": "KYTKETTY ✅ 😊",
         "task2_not_connected": "EI KYTKETTY ❌ ☹️",
+
         "task3_title": "Tehtävä 3. Kytke ENCODER ja muuta valon kirkkautta",
         "task3_instructions": [
             "1. Etsi ENCODER laatikosta (katso kuva)",
             "2. Aseta se encoderin liitäntäkohtaan vihreällä PCB-levyllä",
-            "3. Käännä nuppia vasemmalle, kunnes LED saavuttaa täyden kirkkauden",
+            "3. Käännä nuppia oikealle, kunnes LED saavuttaa täyden kirkkauden",
             "4. Käännä sitten takaisin, kunnes LED sammuu",
             "5. Jos kytkentä on oikein, LED-valon kirkkaus muuttuu"
         ],
@@ -94,144 +118,508 @@ TEXTS = {
         "start": "START",
         "back": "Takaisin",
         "enter_name": "Kirjoita nimesi",
-        "name_required": "Kirjoita nimesi ensin.",
-        "correct": "OIKEIN!"
+        "correct": "OIKEIN!",
+        "result_time": "\n{name}, aikasi:   {time}",
+        "rank": "Sija",
+        "name": "Nimi",
+        "time": "Aika",
+        "anonymous": "Anonyymi",
+        "today_results": "★ PÄIVÄN {day} - TOP 5 ★",
+        "overall_results": "★ KOKONAISTULOKSET – TOP 5 ★",
+        "player_ranks": "Päivän sijoitus: #{day_rank}    Kokonaissijoitus: #{overall_rank}\n",
     }
 }
 
 
-def save_result(player_name, game_time):
-    file_path = "players.json"
-    players = []
-
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                players = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            players = []
-
+def clean_player_list(players):
     valid_players = []
+
+    if not isinstance(players, list):
+        return valid_players
+
     for p in players:
         if isinstance(p, dict) and "name" in p and "time" in p:
-            valid_players.append(p)
+            valid_players.append({
+                "name": p["name"],
+                "time": float(p["time"])
+            })
 
-    valid_players.append({
+    return valid_players
+
+
+def top_5(players):
+    players = clean_player_list(players)
+    players = sorted(players, key=lambda x: x["time"])
+    return players[:5]
+
+
+def load_results():
+    file_path = "players.json"
+
+    empty_results = {
+        "days": {
+            "1": [],
+            "2": [],
+            "3": []
+        },
+        "overall": []
+    }
+
+    if not os.path.exists(file_path):
+        return empty_results
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return empty_results
+
+    if isinstance(data, list):
+        empty_results["overall"] = top_5(data)
+        return empty_results
+
+    if not isinstance(data, dict):
+        return empty_results
+
+    days = data.get("days", {})
+    overall = data.get("overall", [])
+
+    for day in ["1", "2", "3"]:
+        empty_results["days"][day] = sorted(
+            clean_player_list(days.get(day, [])),
+            key=lambda x: x["time"]
+        )
+
+    empty_results["overall"] = sorted(
+        clean_player_list(overall),
+        key=lambda x: x["time"]
+    )
+
+    return empty_results
+
+
+def save_result(player_name, game_time, game_day):
+    file_path = "players.json"
+
+    results = load_results()
+    game_day = str(game_day)
+
+    if game_day not in ["1", "2", "3"]:
+        game_day = "1"
+
+    new_player = {
         "name": player_name,
         "time": round(game_time, 1)
-    })
+    }
 
-    valid_players = sorted(valid_players, key=lambda x: x["time"])
-    valid_players = valid_players[:5]
+    results["days"][game_day].append(new_player)
+    results["overall"].append(new_player)
+
+    results["days"][game_day] = sorted(
+        clean_player_list(results["days"][game_day]),
+        key=lambda x: x["time"]
+    )
+
+    results["overall"] = sorted(
+        clean_player_list(results["overall"]),
+        key=lambda x: x["time"]
+    )
 
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(valid_players, f, indent=4, ensure_ascii=False)
+        json.dump(results, f, indent=4, ensure_ascii=False)
+
+
+def format_game_time(seconds):
+    total_seconds = int(round(float(seconds)))
+
+    minutes = total_seconds // 60
+    remaining_seconds = total_seconds % 60
+
+    return f"{minutes}m {remaining_seconds:02d}s"
+
+
+def get_player_rank(players, player_name, player_time):
+    player_time = round(player_time, 1)
+
+    for index, player in enumerate(players, start=1):
+        if player["name"] == player_name and round(player["time"], 1) == player_time:
+            return index
+
+    return "-"
 
 
 def show_game(root, clear_screen, go_to_menu):
+    root.screen = "game"
     root.cleanup_gpio()
     clear_screen()
 
     lang = getattr(root, "language", "en")
     t = TEXTS[lang]
+
     root.update_idletasks()
 
     screen_width = root.winfo_width()
+    screen_height = root.winfo_height()
+
     if screen_width < 100:
         screen_width = root.winfo_screenwidth()
+
+    if screen_height < 100:
+        screen_height = root.winfo_screenheight()
+
+    scale = min(screen_width / 1000, screen_height / 600)
+    scale = max(0.55, min(scale, 1.25))
+
+    def font(size, bold=False, italic=False):
+        real_size = max(9, int(size * scale))
+
+        style = []
+        if bold:
+            style.append("bold")
+        if italic:
+            style.append("italic")
+
+        if style:
+            return ("Arial", real_size, " ".join(style))
+
+        return ("Arial", real_size)
+
+    main_frame = tk.Frame(root, bg="white")
+    main_frame.pack(expand=True, fill="both")
 
     # -------------------------------
     # Banner
     # -------------------------------
     banner_img = Image.open("task_banner.png")
-    banner_width = int(screen_width * 0.7)
+
+    banner_width = int(screen_width * 0.45)
 
     bw, bh = banner_img.size
-    scale = banner_width / bw
-    height_boost = 1.2
-    banner_height = int(bh * scale * height_boost)
+    img_scale = banner_width / bw
+    banner_height = int(bh * img_scale * 1.25)
 
-    banner_img = banner_img.resize((banner_width, banner_height))
+    max_banner_height = int(screen_height * 0.28)
+
+    if banner_height > max_banner_height:
+        img_scale = max_banner_height / bh
+        banner_width = int(bw * img_scale)
+        banner_height = max_banner_height
+
+    banner_img = banner_img.resize((banner_width, banner_height), Image.LANCZOS)
     banner_photo = ImageTk.PhotoImage(banner_img)
 
-    banner_label = tk.Label(root, image=banner_photo, bg="white")
+    banner_row = tk.Frame(main_frame, bg="white")
+    banner_row.pack(pady=(int(6 * scale), int(3 * scale)))
+
+    left_score_area = tk.Frame(banner_row, bg="white")
+    left_score_area.pack(side="left", padx=(0, int(10 * scale)), anchor="n")
+
+    banner_label = tk.Label(banner_row, image=banner_photo, bg="white")
     banner_label.image = banner_photo
-    banner_label.pack(pady=10)
+    banner_label.pack(side="left", anchor="n")
+
+    right_score_area = tk.Frame(banner_row, bg="white")
+    right_score_area.pack(side="left", padx=(int(10 * scale), 0), anchor="n")
 
     # -------------------------------
     # Main title
     # -------------------------------
     tk.Label(
-        root,
+        main_frame,
         text=t["main_title"],
-        font=("Arial", 18, "bold"),
+        font=font(18, bold=True),
         bg="white"
-    ).pack(pady=(0, 12))
+    ).pack(pady=(0, int(8 * scale)))
 
     # -------------------------------
-    # Horizontal task blocks
+    # Task boxes
     # -------------------------------
-    tasks_frame = tk.Frame(root, bg="white")
-    tasks_frame.pack(pady=(0, 18))
+    tasks_frame = tk.Frame(main_frame, bg="white")
+    tasks_frame.pack(pady=(0, int(8 * scale)))
 
-    timer_label = tk.Label(
-        root,
-        text="Time: 0.0 s",
-        font=("Arial", 16, "bold"),
-        bg="white",
-        fg="black"
-    )
+    box_width = max(8, int(10 * scale))
 
     task1_box = tk.Label(
         tasks_frame,
         text=t["task1"],
-        font=("Arial", 16, "bold"),
-        bg="light gray",
-        width=10,
+        font=font(14, bold=True),
+        bg=TASK_BLOCK_BG,
+        width=box_width,
         height=1,
         bd=1,
         relief="solid"
     )
-    task1_box.pack(side="left", padx=10)
+    task1_box.pack(side="left", padx=int(8 * scale))
 
     task2_box = tk.Label(
         tasks_frame,
         text=t["task2"],
-        font=("Arial", 16, "bold"),
-        bg="light gray",
-        width=10,
+        font=font(14, bold=True),
+        bg=TASK_BLOCK_BG,
+        width=box_width,
         height=1,
         bd=1,
         relief="solid"
     )
-    task2_box.pack(side="left", padx=10)
+    task2_box.pack(side="left", padx=int(8 * scale))
 
     task3_box = tk.Label(
         tasks_frame,
         text=t["task3"],
-        font=("Arial", 16, "bold"),
-        bg="light gray",
-        width=10,
+        font=font(14, bold=True),
+        bg=TASK_BLOCK_BG,
+        width=box_width,
         height=1,
         bd=1,
         relief="solid"
     )
-    task3_box.pack(side="left", padx=10)
+    task3_box.pack(side="left", padx=int(8 * scale))
 
     # -------------------------------
-    # Main content area
+    # Bottom area
     # -------------------------------
-    content_frame = tk.Frame(root, bg="white")
-    content_frame.pack(pady=10)
+    bottom_frame = tk.Frame(main_frame, bg="white")
+    bottom_lift = max(14, int(screen_height * 0.04))
+    bottom_frame.pack(side="bottom", fill="x", pady=(0, bottom_lift))
+
+    timer_job = [None]
+
+    def stop_timer():
+        if timer_job[0] is not None:
+            try:
+                root.after_cancel(timer_job[0])
+            except:
+                pass
+
+            timer_job[0] = None
+
+    tk.Button(
+        bottom_frame,
+        text=t["back"],
+        font=font(11),
+        width=max(8, int(10 * scale)),
+        height=1,
+        command=lambda: (stop_timer(), root.cleanup_gpio(), go_to_menu())
+    ).pack(pady=(0, int(2 * scale)))
+
+    timer_label = tk.Label(
+        bottom_frame,
+        text="Time: 0.0 s",
+        font=font(15, bold=True),
+        bg="white",
+        fg="black"
+    )
 
     # -------------------------------
-    # functions
+    # Content area
+    # -------------------------------
+    content_frame = tk.Frame(main_frame, bg="white")
+    content_frame.pack(fill="both", expand=True, pady=(0, int(3 * scale)))
+
+    # -------------------------------
+    # Helpers
     # -------------------------------
     def clear_content():
         for widget in content_frame.winfo_children():
             widget.destroy()
 
-    timer_job = [None]
+    def clear_start_tables():
+        for widget in left_score_area.winfo_children():
+            widget.destroy()
+
+        for widget in right_score_area.winfo_children():
+            widget.destroy()
+
+    def make_start_score_table(parent, title, players):
+        table_width = max(180, int(screen_width * 0.17))
+        table_height = banner_height
+
+        outer_border = tk.Frame(
+            parent,
+            bg="#87CEEB",
+            width=table_width,
+            height=table_height
+        )
+        outer_border.pack(anchor="n")
+        outer_border.pack_propagate(False)
+
+        middle_gap = tk.Frame(outer_border, bg="white")
+        middle_gap.pack(fill="both", expand=True, padx=3, pady=3)
+        middle_gap.pack_propagate(False)
+
+        inner_border = tk.Frame(middle_gap, bg="#87CEEB")
+        inner_border.pack(fill="both", expand=True, padx=2, pady=2)
+        inner_border.pack_propagate(False)
+
+        frame = tk.Frame(inner_border, bg="white")
+        frame.pack(fill="both", expand=True, padx=3, pady=3)
+
+        for row in range(7):
+            frame.grid_rowconfigure(row, weight=1)
+
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_columnconfigure(1, weight=3)
+        frame.grid_columnconfigure(2, weight=2)
+
+        title_font = font(8, bold=True)
+        header_font = font(7, bold=True)
+        row_font = font(7)
+
+        tk.Label(
+            frame,
+            text=title,
+            font=title_font,
+            bg="#E6F7FF",
+            anchor="center",
+            wraplength=table_width - 20
+        ).grid(row=0, column=0, columnspan=3, padx=2, pady=2, sticky="nsew")
+
+        tk.Label(
+            frame,
+            text=t["rank"],
+            font=header_font,
+            bg="#E6F7FF"
+        ).grid(row=1, column=0, padx=1, pady=1, sticky="nsew")
+
+        tk.Label(
+            frame,
+            text=t["name"],
+            font=header_font,
+            bg="#E6F7FF"
+        ).grid(row=1, column=1, padx=1, pady=1, sticky="nsew")
+
+        tk.Label(
+            frame,
+            text=t["time"],
+            font=header_font,
+            bg="#E6F7FF"
+        ).grid(row=1, column=2, padx=1, pady=1, sticky="nsew")
+
+        for i in range(1, 6):
+            if i <= len(players):
+                player = players[i - 1]
+                name_text = player["name"]
+                time_text = format_game_time(player["time"])
+            else:
+                name_text = ""
+                time_text = ""
+
+            tk.Label(
+                frame,
+                text=str(i),
+                font=row_font,
+                bg="white"
+            ).grid(row=i + 1, column=0, padx=1, pady=1, sticky="nsew")
+
+            tk.Label(
+                frame,
+                text=name_text,
+                font=row_font,
+                bg="white"
+            ).grid(row=i + 1, column=1, padx=1, pady=1, sticky="nsew")
+
+            tk.Label(
+                frame,
+                text=time_text,
+                font=row_font,
+                bg="white"
+            ).grid(row=i + 1, column=2, padx=1, pady=1, sticky="nsew")
+
+    def show_start_tables():
+        clear_start_tables()
+
+        game_day = getattr(root, "game_day", "1")
+        results = load_results()
+
+        day_players = results["days"].get(str(game_day), [])
+        overall_players = results["overall"]
+
+        make_start_score_table(
+            left_score_area,
+            t["today_results"].format(day=game_day),
+            day_players
+        )
+
+        make_start_score_table(
+            right_score_area,
+            t["overall_results"],
+            overall_players
+        )
+
+    def make_task_content(title, instructions, hint):
+        clear_content()
+
+        tk.Label(
+            content_frame,
+            text=title,
+            font=font(17, bold=True),
+            bg=GREY_BG
+        ).pack(pady=(int(2 * scale), int(5 * scale)))
+
+        row_frame = tk.Frame(content_frame, bg="white")
+        row_frame.pack(pady=int(5 * scale))
+
+        text_width = int(banner_width * 0.50)
+
+        left_frame = tk.Frame(row_frame, bg="white")
+        left_frame.pack(
+            side="left",
+            anchor="n",
+            padx=(0, int(banner_width * 0.03))
+        )
+
+        right_frame = tk.Frame(row_frame, bg="white")
+        right_frame.pack(side="left", anchor="n")
+
+        for line in instructions:
+            tk.Label(
+                left_frame,
+                text=line,
+                font=font(13),
+                bg="white",
+                anchor="w",
+                justify="left",
+                wraplength=text_width
+            ).pack(anchor="w", pady=int(2 * scale))
+
+        tk.Label(
+            left_frame,
+            text=hint,
+            font=font(10, italic=True),
+            fg="gray",
+            bg="white",
+            anchor="w",
+            justify="left",
+            wraplength=text_width
+        ).pack(anchor="w", pady=int(8 * scale))
+
+        box_img = Image.open("box.png")
+
+        max_box_height = int(screen_height * 0.40)
+
+        bw2, bh2 = box_img.size
+        box_target_width = int(banner_width * 0.52)
+
+        box_scale = box_target_width / bw2
+        box_target_height = int(bh2 * box_scale)
+
+        if box_target_height > max_box_height:
+            box_scale = max_box_height / bh2
+            box_target_width = int(bw2 * box_scale)
+            box_target_height = max_box_height
+
+        box_img = box_img.resize(
+            (box_target_width, box_target_height),
+            Image.LANCZOS
+        )
+
+        box_photo = ImageTk.PhotoImage(box_img)
+
+        box_label = tk.Label(right_frame, image=box_photo, bg="white")
+        box_label.image = box_photo
+        box_label.pack()
+
+        return row_frame
 
     def update_timer():
         if hasattr(root, "start_time") and root.start_time is not None:
@@ -243,128 +631,207 @@ def show_game(root, clear_screen, go_to_menu):
 
             timer_job[0] = root.after(100, update_timer)
 
-    def stop_timer():
-        if timer_job[0] is not None:
-            root.after_cancel(timer_job[0])
-            timer_job[0] = None
-
     def show_result_screen(player_name, total_time):
         clear_content()
 
-        tk.Label(
-            content_frame,
-            text=f"{player_name}, your time: {total_time:.1f} s",
-            font=("Arial", 20, "bold"),
-            bg="white",
-            fg="black"
-        ).pack(pady=(20, 20))
+        game_day = getattr(root, "game_day", "1")
+        results = load_results()
+
+        day_players = results["days"].get(str(game_day), [])
+        overall_players = results["overall"]
+
+        day_rank = get_player_rank(day_players, player_name, total_time)
+        overall_rank = get_player_rank(overall_players, player_name, total_time)
 
         tk.Label(
             content_frame,
-            text="TOP 5 RESULTS",
-            font=("Arial", 16, "bold"),
-            bg="white"
-        ).pack(pady=(10, 10))
+            text=t["result_time"].format(
+                name=player_name,
+                time=format_game_time(total_time)
+            ),
+            font=font(18, bold=True),
+            bg=result_bg,
+            fg=result_fg,
+        ).pack(pady=(int(8 * scale), int(8 * scale)))
 
-        table_frame = tk.Frame(content_frame, bg="white")
-        table_frame.pack(pady=10)
+        tk.Label(
+            content_frame,
+            text=t["player_ranks"].format(
+                day_rank=day_rank,
+                overall_rank=overall_rank
+            ),
+            font=font(14, bold=True),
+            bg=result_bg,
+            fg=result_fg,
+        ).pack(pady=(0, int(8 * scale)))
 
-        file_path = "players.json"
-        players = []
+        tables_outer_frame = tk.Frame(content_frame, bg="white")
+        tables_outer_frame.pack(pady=int(4 * scale))
 
-        if os.path.exists(file_path):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    players = json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
-                players = []
+        def make_table(parent, title, players):
+            outer_border = tk.Frame(parent, bg="#87CEEB")
+            outer_border.pack(side="left", padx=int(16 * scale), anchor="n")
 
-        tk.Label(table_frame, text="Rank", font=("Arial", 13, "bold"), bg="white", width=8).grid(row=0, column=0,
-                                                                                                 padx=8, pady=4)
-        tk.Label(table_frame, text="Name", font=("Arial", 13, "bold"), bg="white", width=16).grid(row=0, column=1,
-                                                                                                  padx=8, pady=4)
-        tk.Label(table_frame, text="Time", font=("Arial", 13, "bold"), bg="white", width=10).grid(row=0, column=2,
-                                                                                                  padx=8, pady=4)
+            middle_gap = tk.Frame(outer_border, bg="white")
+            middle_gap.pack(padx=3, pady=3)
 
-        for i, player in enumerate(players[:5], start=1):
-            tk.Label(table_frame, text=str(i), font=("Arial", 12), bg="white", width=8).grid(row=i, column=0, padx=8,
-                                                                                             pady=4)
-            tk.Label(table_frame, text=player["name"], font=("Arial", 12), bg="white", width=16).grid(row=i, column=1,
-                                                                                                      padx=8, pady=4)
-            tk.Label(table_frame, text=f'{player["time"]:.1f} s', font=("Arial", 12), bg="white", width=10).grid(row=i,
-                                                                                                                 column=2,
-                                                                                                                 padx=8,
-                                                                                                                 pady=4)
+            inner_border = tk.Frame(middle_gap, bg="#87CEEB")
+            inner_border.pack(padx=2, pady=2)
+
+            frame = tk.Frame(inner_border, bg="white")
+            frame.pack(padx=3, pady=3)
+
+            tk.Label(
+                frame,
+                text=title,
+                font=font(14, bold=True),
+                bg="#E6F7FF",
+                fg="black",
+                width=34
+            ).grid(row=0, column=0, columnspan=3, padx=4, pady=(4, 6), sticky="ew")
+
+            tk.Label(
+                frame,
+                text=t["rank"],
+                font=font(11, bold=True),
+                bg="#E6F7FF",
+                width=7
+            ).grid(row=1, column=0, padx=4, pady=4)
+
+            tk.Label(
+                frame,
+                text=t["name"],
+                font=font(11, bold=True),
+                bg="#E6F7FF",
+                width=14
+            ).grid(row=1, column=1, padx=4, pady=4)
+
+            tk.Label(
+                frame,
+                text=t["time"],
+                font=font(11, bold=True),
+                bg="#E6F7FF",
+                width=9
+            ).grid(row=1, column=2, padx=4, pady=4)
+
+            for i in range(1, 6):
+                if i <= len(players):
+                    player = players[i - 1]
+                    name_text = player["name"]
+                    time_text = format_game_time(player["time"])
+                else:
+                    name_text = ""
+                    time_text = ""
+
+                tk.Label(
+                    frame,
+                    text=str(i),
+                    font=font(10),
+                    bg="white",
+                    width=7
+                ).grid(row=i + 1, column=0, padx=4, pady=3)
+
+                tk.Label(
+                    frame,
+                    text=name_text,
+                    font=font(10),
+                    bg="white",
+                    width=14
+                ).grid(row=i + 1, column=1, padx=4, pady=3)
+
+                tk.Label(
+                    frame,
+                    text=time_text,
+                    font=font(10),
+                    bg="white",
+                    width=9
+                ).grid(row=i + 1, column=2, padx=4, pady=3)
+
+        make_table(
+            tables_outer_frame,
+            t["today_results"].format(day=game_day),
+            day_players
+        )
+
+        make_table(
+            tables_outer_frame,
+            t["overall_results"],
+            overall_players
+        )
 
     def show_description():
         clear_content()
+        show_start_tables()
 
         timer_label.pack_forget()
         stop_timer()
 
         desc_frame = tk.Frame(content_frame, bg="white")
-        desc_frame.pack()
+        desc_frame.pack(pady=int(8 * scale))
 
         tk.Label(
             desc_frame,
             text=t["description_title"],
-            font=("Arial", 16, "bold"),
-            bg="white",
-            anchor="nw",
-            justify="left"
-        ).pack(anchor="nw", padx=12, pady=(12, 8))
+            font=font(16, bold=True),
+            bg=GREY_BG,
+            anchor="center",
+            justify="center"
+        ).pack(anchor="center", padx=int(12 * scale), pady=(0, int(8 * scale)))
 
         tk.Label(
             desc_frame,
             text=t["description_text"],
-            font=("Arial", 13),
+            font=font(12),
             bg="white",
             anchor="nw",
             justify="left",
-            wraplength=520
-        ).pack(anchor="nw", padx=12, pady=(0, 18))
+            wraplength=int(screen_width * 0.55)
+        ).pack(anchor="nw", padx=int(12 * scale), pady=(0, int(12 * scale)))
 
         controls_frame = tk.Frame(desc_frame, bg="white")
-        controls_frame.pack(anchor="w", padx=12, pady=(0, 10))
+        controls_frame.pack(anchor="w", padx=int(12 * scale), pady=(0, int(6 * scale)))
 
         tk.Label(
             controls_frame,
             text=t["enter_name"],
-            font=("Arial", 13),
+            font=font(12),
             bg="white"
-        ).pack(side="left", padx=(0, 10))
+        ).pack(side="left", padx=(0, int(8 * scale)))
 
         name_var = tk.StringVar()
 
         name_entry = tk.Entry(
             controls_frame,
             textvariable=name_var,
-            font=("Arial", 14),
+            font=font(13),
             width=22,
             justify="center"
         )
-        name_entry.pack(side="left", padx=(0, 15))
+        name_entry.pack(side="left", padx=(0, int(12 * scale)))
         name_entry.focus_set()
 
         def on_start():
             player_name = name_var.get().strip()
 
             if not player_name:
-                messagebox.showwarning("Warning", t["name_required"])
-                return
+                player_name = t["anonymous"]
 
             root.player_name = player_name
             root.start_time = time.time()
-            timer_label.pack(pady=(0, 12))
+
+            timer_label.pack(pady=(0, int(2 * scale)))
             update_timer()
 
+            clear_start_tables()
             show_task1()
+
+        name_entry.bind("<Return>", lambda event: on_start())
 
         tk.Button(
             controls_frame,
             text=t["start"],
-            font=("Arial", 16, "bold"),
-            width=10,
+            font=font(15, bold=True),
+            width=max(8, int(10 * scale)),
             height=1,
             command=on_start
         ).pack(side="left")
@@ -427,164 +894,70 @@ def show_game(root, clear_screen, go_to_menu):
             return
 
         root.task1_done = True
-        print("GPIO 17 pressed")
+
+        print("GPIO 14 pressed")
+
         root.after(0, show_popup)
-        root.after(0, lambda: task1_box.config(bg="#ADD8E6"))
+        root.after(0, lambda: task1_box.config(bg=TASK_DONE_BG))
         root.after(1500, lambda: (root.cleanup_gpio(), show_task2()))
 
     def show_task1():
-        clear_content()
+        root.screen = "game_task1"
 
-        task1_box.config(bg="light gray")
-        task2_box.config(bg="light gray")
-        task3_box.config(bg="light gray")
+        task1_box.config(bg=TASK_BLOCK_BG)
+        task2_box.config(bg=TASK_BLOCK_BG)
+        task3_box.config(bg=TASK_BLOCK_BG)
 
-        task1_frame = tk.Frame(content_frame, bg="white")
-        task1_frame.pack()
+        make_task_content(
+            t["task1_title"],
+            t["task1_instructions"],
+            t["task1_hint"]
+        )
 
-        tk.Label(
-            task1_frame,
-            text=t["task1_title"],
-            font=("Arial", 18, "bold"),
-            bg="white"
-        ).pack(pady=10)
-
-        row_frame = tk.Frame(task1_frame, bg="white")
-        row_frame.pack(pady=10)
-
-        left_frame = tk.Frame(row_frame, bg="white")
-        left_frame.pack(side="left", anchor="n")
-
-        spacer = tk.Frame(row_frame, bg="white", width=40)
-        spacer.pack(side="left")
-
-        right_frame = tk.Frame(row_frame, bg="white")
-        right_frame.pack(side="left", anchor="n")
-
-        text_width = int(banner_width * 0.5)
-
-        for line in t["task1_instructions"]:
-            tk.Label(
-                left_frame,
-                text=line,
-                font=("Arial", 14),
-                bg="white",
-                anchor="w",
-                justify="left",
-                wraplength=text_width
-            ).pack(anchor="w", pady=4)
-
-        tk.Label(
-            left_frame,
-            text=t["task1_hint"],
-            font=("Arial", 12, "italic"),
-            fg="gray",
-            bg="white",
-            anchor="w",
-            justify="left",
-            wraplength=text_width
-        ).pack(anchor="w", pady=15)
-
-        box_img = Image.open("box.png")
-        box_target_width = int(banner_width * 0.4)
-        bw2, bh2 = box_img.size
-        box_target_height = int(bh2 * (box_target_width / bw2))
-
-        box_img = box_img.resize((box_target_width, box_target_height))
-        box_photo = ImageTk.PhotoImage(box_img)
-
-        box_label = tk.Label(right_frame, image=box_photo, bg="white")
-        box_label.image = box_photo
-        box_label.pack()
-
-        btn_task1 = Button(17, pull_up=True)
+        btn_task1 = Button(TASK1_PIN, pull_up=True)
         btn_task1.when_pressed = on_task1_pressed
         root.btn_task1 = btn_task1
 
     def show_task2():
-        clear_content()
+        root.screen = "game_task2"
 
-        task2_frame = tk.Frame(content_frame, bg="white")
-        task2_frame.pack()
-
-        tk.Label(
-            task2_frame,
-            text=t["task2_title"],
-            font=("Arial", 18, "bold"),
-            bg="white"
-        ).pack(pady=10)
-
-        row_frame = tk.Frame(task2_frame, bg="white")
-        row_frame.pack(pady=10)
-
-        left_frame = tk.Frame(row_frame, bg="white")
-        left_frame.pack(side="left", anchor="n")
-
-        spacer = tk.Frame(row_frame, bg="white", width=40)
-        spacer.pack(side="left")
-
-        right_frame = tk.Frame(row_frame, bg="white")
-        right_frame.pack(side="left", anchor="n")
-
-        text_width = int(banner_width * 0.5)
-
-        for line in t["task2_instructions"]:
-            tk.Label(
-                left_frame,
-                text=line,
-                font=("Arial", 14),
-                bg="white",
-                anchor="w",
-                justify="left",
-                wraplength=text_width
-            ).pack(anchor="w", pady=4)
-
-        tk.Label(
-            left_frame,
-            text=t["task2_hint"],
-            font=("Arial", 12, "italic"),
-            fg="gray",
-            bg="white",
-            anchor="w",
-            justify="left",
-            wraplength=text_width
-        ).pack(anchor="w", pady=15)
-
-        box_img = Image.open("box.png")
-        box_target_width = int(banner_width * 0.4)
-        bw2, bh2 = box_img.size
-        box_target_height = int(bh2 * (box_target_width / bw2))
-
-        box_img = box_img.resize((box_target_width, box_target_height))
-        box_photo = ImageTk.PhotoImage(box_img)
-
-        box_label = tk.Label(right_frame, image=box_photo, bg="white")
-        box_label.image = box_photo
-        box_label.pack()
+        make_task_content(
+            t["task2_title"],
+            t["task2_instructions"],
+            t["task2_hint"]
+        )
 
         status_label = tk.Label(
-            task2_frame,
+            content_frame,
             text=t["task2_not_connected"],
-            font=("Arial", 14),
+            font=font(14, bold=True),
             bg="white",
             fg="red"
         )
-        status_label.pack(pady=10)
+        status_label.pack(pady=int(4 * scale))
 
-        sensor = Button(26, pull_up=True)
+        sensor = Button(TASK2_SENSOR_PIN, pull_up=True)
         root.sensor = sensor
 
-        led_task2 = LED(21)
+        led_task2 = LED(LED_PIN)
         root.led_task2 = led_task2
 
         def check_connection():
             if not status_label.winfo_exists():
                 return
 
-            if sensor.is_pressed:
+            if not hasattr(root, "sensor") or root.sensor != sensor:
+                return
+
+            try:
+                pressed = sensor.is_pressed
+            except:
+                return
+
+            if pressed:
                 status_label.config(
                     text=t["task2_connected"],
-                    font=("Arial", 18, "bold"),
+                    font=font(17, bold=True),
                     fg="green",
                     bg="white"
                 )
@@ -592,14 +965,14 @@ def show_game(root, clear_screen, go_to_menu):
 
                 if not root.task2_done:
                     root.task2_done = True
-                    task2_box.config(bg="#ADD8E6")
+                    task2_box.config(bg=TASK_DONE_BG)
                     root.after(2000, lambda: (root.cleanup_gpio(), show_task3()))
                     return
 
             else:
                 status_label.config(
                     text=t["task2_not_connected"],
-                    font=("Arial", 18, "bold"),
+                    font=font(17, bold=True),
                     fg="red",
                     bg="white"
                 )
@@ -609,94 +982,48 @@ def show_game(root, clear_screen, go_to_menu):
 
         check_connection()
 
-    # task 3
-    # -----------------------------------------------------
     def show_task3():
-        clear_content()
+        root.screen = "game_task3"
 
-        task3_frame = tk.Frame(content_frame, bg="white")
-        task3_frame.pack()
-
-        tk.Label(
-            task3_frame,
-            text=t["task3_title"],
-            font=("Arial", 18, "bold"),
-            bg="white"
-        ).pack(pady=10)
-
-        row_frame = tk.Frame(task3_frame, bg="white")
-        row_frame.pack(pady=10)
-
-        left_frame = tk.Frame(row_frame, bg="white")
-        left_frame.pack(side="left", anchor="n")
-
-        spacer = tk.Frame(row_frame, bg="white", width=40)
-        spacer.pack(side="left")
-
-        right_frame = tk.Frame(row_frame, bg="white")
-        right_frame.pack(side="left", anchor="n")
-
-        text_width = int(banner_width * 0.5)
-
-        for line in t["task3_instructions"]:
-            tk.Label(
-                left_frame,
-                text=line,
-                font=("Arial", 14),
-                bg="white",
-                anchor="w",
-                justify="left",
-                wraplength=text_width
-            ).pack(anchor="w", pady=4)
+        make_task_content(
+            t["task3_title"],
+            t["task3_instructions"],
+            t["task3_hint"]
+        )
 
         tk.Label(
-            left_frame,
-            text=t["task3_hint"],
-            font=("Arial", 12, "italic"),
-            fg="gray",
-            bg="white",
-            anchor="w",
-            justify="left",
-            wraplength=text_width
-        ).pack(anchor="w", pady=15)
-
-        box_img = Image.open("box.png")
-        box_target_width = int(banner_width * 0.4)
-        bw2, bh2 = box_img.size
-        box_target_height = int(bh2 * (box_target_width / bw2))
-
-        box_img = box_img.resize((box_target_width, box_target_height))
-        box_photo = ImageTk.PhotoImage(box_img)
-
-        box_label = tk.Label(right_frame, image=box_photo, bg="white")
-        box_label.image = box_photo
-        box_label.pack()
-
-        tk.Label(
-            task3_frame,
+            content_frame,
             text=t["brightness"],
-            font=("Arial", 14, "bold"),
+            font=font(14, bold=True),
             bg="white"
-        ).pack(pady=(10, 5))
+        ).pack(pady=(int(4 * scale), int(3 * scale)))
+
+        bar_width_total = max(220, int(screen_width * 0.30))
+        bar_height = max(24, int(30 * scale))
 
         bar_canvas = tk.Canvas(
-            task3_frame,
-            width=300,
-            height=30,
+            content_frame,
+            width=bar_width_total,
+            height=bar_height,
             bg="white",
             highlightthickness=0
         )
-        bar_canvas.pack(pady=5)
+        bar_canvas.pack(pady=int(3 * scale))
 
-        bar_canvas.create_rectangle(20, 5, 280, 25, outline="black", width=2)
-        fill_bar = bar_canvas.create_rectangle(20, 5, 20, 25, fill="skyblue", outline="")
+        x1 = int(bar_width_total * 0.07)
+        x2 = int(bar_width_total * 0.93)
+        y1 = int(bar_height * 0.2)
+        y2 = int(bar_height * 0.8)
 
-        led_task3 = PWMLED(21)
+        bar_canvas.create_rectangle(x1, y1, x2, y2, outline="black", width=2)
+        fill_bar = bar_canvas.create_rectangle(x1, y1, x1, y2, fill="skyblue", outline="")
+
+        led_task3 = PWMLED(LED_PIN)
         led_task3.value = 0
         root.led_task3 = led_task3
 
-        sig_a = Button(20, pull_up=True)
-        sig_b = Button(16, pull_up=True)
+        sig_a = Button(ROT_A_PIN, pull_up=True)
+        sig_b = Button(ROT_B_PIN, pull_up=True)
 
         root.sig_a = sig_a
         root.sig_b = sig_b
@@ -714,8 +1041,8 @@ def show_game(root, clear_screen, go_to_menu):
 
             led_task3.value = brightness[0]
 
-            bar_width = 20 + (260 * brightness[0])
-            bar_canvas.coords(fill_bar, 20, 5, bar_width, 25)
+            bar_width = x1 + ((x2 - x1) * brightness[0])
+            bar_canvas.coords(fill_bar, x1, y1, bar_width, y2)
 
             print("Brightness:", brightness[0])
 
@@ -728,34 +1055,21 @@ def show_game(root, clear_screen, go_to_menu):
             if reached_full[0] and returned_to_zero[0] and not task3_completed[0]:
                 task3_completed[0] = True
                 root.task3_done = True
-                task3_box.config(bg="#ADD8E6")
+                task3_box.config(bg=TASK_DONE_BG)
 
                 root.end_time = time.time()
                 total_time = root.end_time - root.start_time
 
                 player_name = getattr(root, "player_name", "Player")
-                save_result(player_name, total_time)
+                game_day = getattr(root, "game_day", "1")
+
+                save_result(player_name, total_time, game_day)
 
                 stop_timer()
                 timer_label.pack_forget()
-
-                # SHOW RESULT
-                player_name = getattr(root, "player_name", "Player")
 
                 show_result_screen(player_name, total_time)
 
         sig_a.when_pressed = adjust_brightness
 
-    # -------------------------------
-    # Back button
-    # -------------------------------
-    tk.Button(
-        root,
-        text=t["back"],
-        width=10,
-        height=2,
-        command=go_to_menu
-    ).pack(pady=20)
-
-    # first screen
     show_description()
