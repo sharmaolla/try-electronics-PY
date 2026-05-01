@@ -1,6 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from gpiozero import Button, LED, PWMLED
+from gpiozero import Button, LED, PWMLED, MCP3008
 import json
 import os
 import time
@@ -15,10 +15,13 @@ GREY_BG = "#EEEEEE"
 # PCB pins
 # -------------------------------
 TASK1_PIN = 14
-TASK2_SENSOR_PIN = 18
 LED_PIN = 12
 ROT_A_PIN = 27
 ROT_B_PIN = 17
+
+TASK2_ADC_CHANNEL = 3
+TASK2_ADC_THRESHOLD = 0.5
+TASK2_LED_PIN = 18
 
 TEXTS = {
     "en": {
@@ -246,6 +249,16 @@ def get_player_rank(players, player_name, player_time):
             return index
 
     return "-"
+
+
+def read_adc_average(adc, samples=5):
+    total = 0
+
+    for _ in range(samples):
+        total += adc.value
+        time.sleep(0.01)
+
+    return total / samples
 
 
 def show_game(root, clear_screen, go_to_menu):
@@ -936,37 +949,58 @@ def show_game(root, clear_screen, go_to_menu):
         )
         status_label.pack(pady=int(4 * scale))
 
-        sensor = Button(TASK2_SENSOR_PIN, pull_up=True)
-        root.sensor = sensor
+        try:
+            adc3 = MCP3008(channel=TASK2_ADC_CHANNEL)
+            root.adc3 = adc3
+        except Exception as e:
+            status_label.config(
+                text=f"ADC ERROR: {e}",
+                font=font(14, bold=True),
+                fg="red",
+                bg="white"
+            )
+            return
 
-        led_task2 = LED(LED_PIN)
+        led_task2 = LED(TASK2_LED_PIN)
         root.led_task2 = led_task2
+
+        # GPIO18 stays ON always
+
+        led_task2.on()
 
         def check_connection():
             if not status_label.winfo_exists():
                 return
 
-            if not hasattr(root, "sensor") or root.sensor != sensor:
+            if not hasattr(root, "adc3") or root.adc3 != adc3:
                 return
 
             try:
-                pressed = sensor.is_pressed
-            except:
+                ad3_value = read_adc_average(adc3)
+            except Exception as e:
+                print("ADC read error:", e)
                 return
 
-            if pressed:
+            print("Game Task 2 AD3:", round(ad3_value, 3))
+
+            resistor_connected = ad3_value > TASK2_ADC_THRESHOLD
+
+            if resistor_connected:
                 status_label.config(
                     text=t["task2_connected"],
                     font=font(17, bold=True),
                     fg="green",
                     bg="white"
                 )
-                led_task2.on()
 
                 if not root.task2_done:
                     root.task2_done = True
                     task2_box.config(bg=TASK_DONE_BG)
-                    root.after(2000, lambda: (root.cleanup_gpio(), show_task3()))
+
+                    root.after(
+                        2000,
+                        lambda: (root.cleanup_gpio(), show_task3())
+                    )
                     return
 
             else:
@@ -976,9 +1010,8 @@ def show_game(root, clear_screen, go_to_menu):
                     fg="red",
                     bg="white"
                 )
-                led_task2.off()
 
-            root.after(200, check_connection)
+            root.after(300, check_connection)
 
         check_connection()
 
@@ -1067,6 +1100,8 @@ def show_game(root, clear_screen, go_to_menu):
 
                 stop_timer()
                 timer_label.pack_forget()
+
+                root.cleanup_gpio()
 
                 show_result_screen(player_name, total_time)
 

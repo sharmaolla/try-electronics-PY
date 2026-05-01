@@ -209,7 +209,7 @@ def show_task3(root, clear_screen, go_to_menu):
         width=btn_width,
         height=btn_height,
         bg="skyblue",
-        command=root.go_main
+        command=lambda: (root.cleanup_gpio(), root.go_main())
     ).pack(side="left", padx=int(8 * scale))
 
     tk.Button(
@@ -218,7 +218,8 @@ def show_task3(root, clear_screen, go_to_menu):
         font=font(12),
         width=btn_width,
         height=btn_height,
-        command=root.go_task1
+        command=lambda: (root.cleanup_gpio(), root.go_task2())
+
     ).pack(side="left", padx=int(8 * scale))
 
     tk.Button(
@@ -227,7 +228,8 @@ def show_task3(root, clear_screen, go_to_menu):
         font=font(12),
         width=btn_width,
         height=btn_height,
-        command=root.go_task2
+        command=lambda: (root.cleanup_gpio(), root.go_task2())
+
     ).pack(side="left", padx=int(8 * scale))
 
     # GPIO
@@ -257,4 +259,5 @@ def show_task3(root, clear_screen, go_to_menu):
         print("Brightness:", brightness[0])
 
     sig_a.when_pressed = adjust_brightness
+
 

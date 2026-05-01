@@ -1,4 +1,4 @@
-from gpiozero import Button
+from gpiozero import Button, PWMLED
 from tkinter import simpledialog, messagebox
 from PIL import Image, ImageTk
 import tkinter as tk
@@ -8,6 +8,11 @@ from task2 import show_task2
 from task3 import show_task3
 from menu import show_task_menu
 
+
+# -------------------------------
+# Decorative LEDs
+# -------------------------------
+DECOR_LED_PINS = [13, 19, 26]
 
 # -------------------------------
 # Helpers for dynamic screen size
@@ -51,6 +56,7 @@ def cleanup_gpio():
         "sig_b",
         "btn_task1",
         "sensor",
+        "adc3",
         "led_task2",
         "led_task3",
         "task2_device"
@@ -181,9 +187,75 @@ def ask_day():
         root.attributes("-topmost", False)
 
 
+def go_back_to_main():
+    if root.screen == "main":
+        return
+
+    root.cleanup_gpio()
+    main_menu()
+
+
+def hardware_back_pressed():
+    root.after(0, go_back_to_main)
+
+def start_decorative_leds():
+    root.decor_leds = []
+
+    for pin in DECOR_LED_PINS:
+        try:
+            led = PWMLED(pin)
+            led.value = 0
+            root.decor_leds.append(led)
+        except Exception as e:
+            print(f"Could not start decorative LED on GPIO {pin}: {e}")
+
+    pattern = [
+        [0.15, 0.00, 0.00],
+        [0.45, 0.15, 0.00],
+        [0.75, 0.35, 0.15],
+        [0.45, 0.75, 0.35],
+        [0.15, 0.45, 0.75],
+        [0.00, 0.15, 0.45],
+        [0.00, 0.00, 0.15],
+        [0.00, 0.00, 0.00],
+    ]
+
+    root.decor_step = 0
+
+    def animate():
+        if not hasattr(root, "decor_leds"):
+            return
+
+        values = pattern[root.decor_step]
+
+        for led, value in zip(root.decor_leds, values):
+            try:
+                led.value = value
+            except:
+                pass
+
+        root.decor_step = (root.decor_step + 1) % len(pattern)
+
+        # Bigger number = slower. 450ms is calm and not distracting.
+        root.after(450, animate)
+
+    animate()
+
+def on_close():
+    if hasattr(root, "decor_leds"):
+        for led in root.decor_leds:
+            try:
+                led.off()
+                led.close()
+            except:
+                pass
+
+    root.destroy()
+
 
 def main_menu():
     root.screen = "main"
+    root.cleanup_gpio()
 
     close_menu_buttons()
     clear_screen()
@@ -254,10 +326,13 @@ def main_menu():
     ).pack(pady=int(8 * scale))
 
 
+
+
 # -------------------------------
 # Main app
 # -------------------------------
 root = tk.Tk()
+
 
 root.cleanup_gpio = cleanup_gpio
 root.go_main = main_menu
@@ -275,9 +350,9 @@ root.screen = "main"
 # -------------------------------
 # Hardware buttons
 # -------------------------------
-button_english = Button(5, pull_up=True, bounce_time=0.1)
-button_suomi = Button(22, pull_up=True, bounce_time=0.1)
-button_back = Button(6, pull_up=True, bounce_time=0.1)
+button_english = Button(5, pull_up=True)
+button_suomi = Button(22, pull_up=True)
+button_back = Button(6, pull_up=True)
 
 button_english.when_pressed = lambda: root.after(
     0, lambda: english_selected() if root.screen == "main" else None
@@ -287,9 +362,10 @@ button_suomi.when_pressed = lambda: root.after(
     0, lambda: finnish_selected() if root.screen == "main" else None
 )
 
-button_back.when_pressed = lambda: root.after(0, main_menu)
+button_back.when_pressed = hardware_back_pressed
 
 
+start_decorative_leds()
 ask_day()
 main_menu()
 root.mainloop()
