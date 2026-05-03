@@ -4,18 +4,16 @@ from gpiozero import Button
 
 GREY_BG = "#EEEEEE"
 
-
-
 TEXTS = {
     "en": {
-        "title": "Task 1. Connect button",
+        "title": "Task 1. Connect the button",
         "instructions": [
-            "1. Find BUTTON connection point and BUTTON_1 on the green PCB board",
-            "2. Take two jumper wires from the box (refer image)",
-            "3. Connect BUTTON_1 and BUTTON connection points with wires",
-            "4. Press the button"
+            "1. Find connection points J2 and J3, and BUTTON1 on the green PCB board",
+            "2. Take two jumper wires from the box (see image)",
+            "3. Connect J2 and J3 with the two jumper wires by following the white guide lines printed on the PCB",
+            "4. Press BUTTON1"
         ],
-        "hint": "Hint: if you press the button and nothing happens, check wiring and connections",
+        "hint": "Hint: if you press the button and nothing happens, check the wiring and connections",
         "main": "Main",
         "task2": "Task 2",
         "task3": "Task 3",
@@ -24,12 +22,12 @@ TEXTS = {
     "fi": {
         "title": "Tehtävä 1. Yhdistä painike",
         "instructions": [
-            "1. Etsi BUTTON-liitäntäkohta ja BUTTON_1 vihreältä PCB-levyltä",
+            "1. Etsi liitäntäkohdat J2 ja J3 sekä BUTTON1-painike vihreältä PCB-levyltä",
             "2. Ota kaksi hyppylankaa laatikosta (katso kuva)",
-            "3. Yhdistä BUTTON_1 ja BUTTON-liitäntäkohta johdoilla",
-            "4. Paina painiketta"
+            "3. Yhdistä J2 ja J3 kahdella hyppylangalla PCB-levyyn painettujen valkoisten ohjeviivojen mukaisesti",
+            "4. Paina BUTTON1-painiketta"
         ],
-        "hint": "Vinkki: Jos painat painiketta eikä mitään tapahdu, tarkista johdot ja liitännät",
+        "hint": "Vinkki: jos painat painiketta eikä mitään tapahdu, tarkista johdot ja liitännät",
         "main": "Etusivu",
         "task2": "Tehtävä 2",
         "task3": "Tehtävä 3",
@@ -78,7 +76,7 @@ def show_task1(root, clear_screen, go_to_menu):
     main_frame.pack(expand=True, fill="both")
 
     # -------------------------------
-    # Banner - same style as menu
+    # Banner
     # -------------------------------
     banner_img = Image.open("task_banner.png")
 
@@ -112,8 +110,8 @@ def show_task1(root, clear_screen, go_to_menu):
         bg=GREY_BG
     ).pack(pady=(int(4 * scale), int(6 * scale)))
 
-   # -------------------------------
-    # Content aligned with banner
+    # -------------------------------
+    # Content
     # -------------------------------
     content_frame = tk.Frame(main_frame, bg="white")
     content_frame.pack(pady=int(5 * scale), padx=int(screen_width * 0.25))
@@ -262,12 +260,15 @@ def show_task1(root, clear_screen, go_to_menu):
 
         popup.after(1000, popup.destroy)
 
+
     def on_task1_pressed():
         print("GP 14 pressed")
         root.after(0, lambda: show_popup(root))
 
+    # -------------------------------
+    # Hardware button
+    # -------------------------------
     btn_task1 = Button(14, pull_up=True)
     btn_task1.when_pressed = on_task1_pressed
+
     root.btn_task1 = btn_task1
-
-

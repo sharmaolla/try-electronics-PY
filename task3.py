@@ -6,28 +6,30 @@ GREY_BG = "#EEEEEE"
 
 TEXTS = {
     "en": {
-        "title": "Task 3. Connect encoder and change LED brightness",
+        "title": "Task 3. Connect the encoder and change LED3 brightness",
         "instructions": [
-            "1. Find ENCODER in the box (refer image)",
-            "2. Insert it into the encoder connection point on the green PCB board",
-            "3. Turn the knob left and right",
-            "4. If connected correctly, the LED brightness will change"
+            "1. Find the ENCODER in the box (see image)",
+            "2. Find the suitable connection point for the encoder on the green PCB board",
+            "3. Connect the encoder cable to this connection point",
+            "4. Turn the encoder knob left and right",
+            "5. If connected correctly, LED3 brightness will change"
         ],
-        "hint": "Hint: Encoder has a 4-wire cable",
+        "hint": "Hint: the encoder has a 4-wire cable",
         "brightness": "Brightness Level",
         "main": "Main",
         "task1": "Task 1",
         "task2": "Task 2",
     },
     "fi": {
-        "title": "Tehtävä 3. Kytke ENCODER ja muuta valon kirkkautta",
+        "title": "Tehtävä 3. Kytke encoder ja muuta LED3:n kirkkautta",
         "instructions": [
             "1. Etsi ENCODER laatikosta (katso kuva)",
-            "2. Aseta se encoderin liitäntäkohtaan vihreällä PCB-levyllä",
-            "3. Käännä nuppia vasemmalle ja oikealle",
-            "4. Jos kytkentä on oikein, LED-valon kirkkaus muuttuu"
+            "2. Etsi encoderille sopiva liitäntäkohta vihreältä PCB-levyltä",
+            "3. Kytke encoderin kaapeli tähän liitäntäkohtaan",
+            "4. Käännä encoderin nuppia vasemmalle ja oikealle",
+            "5. Jos kytkentä on oikein, LED3:n kirkkaus muuttuu"
         ],
-        "hint": "Vinkki: Encoderissa on 4-johtiminen kaapeli",
+        "hint": "Vinkki: encoderissa on 4-johtiminen kaapeli",
         "brightness": "Kirkkaustaso",
         "main": "Etusivu",
         "task1": "Tehtävä 1",
@@ -75,7 +77,9 @@ def show_task3(root, clear_screen, go_to_menu):
     main_frame = tk.Frame(root, bg="white")
     main_frame.pack(expand=True, fill="both")
 
+    # -------------------------------
     # Banner
+    # -------------------------------
     banner_img = Image.open("task_banner.png")
 
     banner_width = int(screen_width * 0.50)
@@ -98,7 +102,9 @@ def show_task3(root, clear_screen, go_to_menu):
     banner_label.image = banner_photo
     banner_label.pack(pady=(int(6 * scale), int(4 * scale)))
 
+    # -------------------------------
     # Title
+    # -------------------------------
     tk.Label(
         main_frame,
         text=t["title"],
@@ -143,7 +149,9 @@ def show_task3(root, clear_screen, go_to_menu):
         wraplength=text_width
     ).pack(anchor="w", pady=int(12 * scale))
 
+    # -------------------------------
     # Box image
+    # -------------------------------
     box_img = Image.open("box.png")
 
     max_box_height = int(screen_height * 0.40)
@@ -166,7 +174,9 @@ def show_task3(root, clear_screen, go_to_menu):
     box_label.image = box_photo
     box_label.pack()
 
+    # -------------------------------
     # Brightness label
+    # -------------------------------
     tk.Label(
         main_frame,
         text=t["brightness"],
@@ -174,7 +184,9 @@ def show_task3(root, clear_screen, go_to_menu):
         bg="white"
     ).pack(pady=(int(4 * scale), int(3 * scale)))
 
+    # -------------------------------
     # Brightness bar
+    # -------------------------------
     bar_width_total = max(220, int(screen_width * 0.30))
     bar_height = max(24, int(30 * scale))
 
@@ -195,7 +207,9 @@ def show_task3(root, clear_screen, go_to_menu):
     bar_canvas.create_rectangle(x1, y1, x2, y2, outline="black", width=2)
     fill_bar = bar_canvas.create_rectangle(x1, y1, x1, y2, fill="skyblue", outline="")
 
+    # -------------------------------
     # Buttons
+    # -------------------------------
     nav_frame = tk.Frame(main_frame, bg="white")
     nav_frame.pack(pady=int(14 * scale))
 
@@ -218,7 +232,7 @@ def show_task3(root, clear_screen, go_to_menu):
         font=font(12),
         width=btn_width,
         height=btn_height,
-        command=lambda: (root.cleanup_gpio(), root.go_task2())
+        command=lambda: (root.cleanup_gpio(), root.go_task1())
 
     ).pack(side="left", padx=int(8 * scale))
 
@@ -232,7 +246,9 @@ def show_task3(root, clear_screen, go_to_menu):
 
     ).pack(side="left", padx=int(8 * scale))
 
+    # -------------------------------
     # GPIO
+    # -------------------------------
     led_task3 = PWMLED(12)
     led_task3.value = 0
     root.led_task3 = led_task3
@@ -259,5 +275,3 @@ def show_task3(root, clear_screen, go_to_menu):
         print("Brightness:", brightness[0])
 
     sig_a.when_pressed = adjust_brightness
-
-

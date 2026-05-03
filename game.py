@@ -8,20 +8,21 @@ import time
 TASK_BLOCK_BG = "#EEEEEE"
 TASK_DONE_BG = "#87CEEB"
 result_bg = "white"
-result_fg = "#0B3D91"  # dark blue
+result_fg = "#0B3D91"
 GREY_BG = "#EEEEEE"
 
 # -------------------------------
-# PCB pins
+# GPIO + ADC
 # -------------------------------
 TASK1_PIN = 14
-LED_PIN = 12
-ROT_A_PIN = 27
-ROT_B_PIN = 17
 
 TASK2_ADC_CHANNEL = 3
 TASK2_ADC_THRESHOLD = 0.5
 TASK2_LED_PIN = 18
+
+TASK3_LED_PIN = 12
+ROT_A_PIN = 27
+ROT_B_PIN = 17
 
 TEXTS = {
     "en": {
@@ -32,32 +33,33 @@ TEXTS = {
             "Enter your name and press START to begin.\n"
             "(use a unique name or add numbers, e.g. John1)"
         ),
-        "task1_title": "Task 1. Connect button",
+        "task1_title": "Task 1. Connect the button",
         "task1_instructions": [
-            "1. Find BUTTON connection point and BUTTON_1 on the green PCB board",
-            "2. Take two jumper wires from the box (refer image)",
-            "3. Connect BUTTON_1 and BUTTON connection points with wires",
-            "4. Press the button"
+            "1. Find connection points J2 and J3, and BUTTON1 on the green PCB board",
+            "2. Take two jumper wires from the box (see image)",
+            "3. Connect J2 and J3 with the two jumper wires by following the white guide lines printed on the PCB",
+            "4. Press BUTTON1"
         ],
         "task1_hint": "Hint: if you press the button and nothing happens, check wiring and connections",
 
         "task2_title": "Task 2. Connect resistor and turn LED light on",
         "task2_instructions": [
-            "1. Find RESISTOR in the box (refer image)",
-            "2. Insert it into the resistor connection point on the green PCB board",
-            "3. If connected correctly the resistor will be detected"
+            "1. Find connection points J4 and J5, and LED2 on the green PCB board",
+            "2. Find the RESISTOR in the box (see image)",
+            "3. Insert the resistor between connection points J4 and J5 by following the white guide line printed on the PCB",
+            "4. If connected correctly, the resistor will be detected and LED2 will turn ON"
         ],
         "task2_hint": "Hint: you can insert RESISTOR either way, try both ways.",
         "task2_connected": "CONNECTED ✅ 😊",
         "task2_not_connected": "NOT CONNECTED ❌ ☹️",
 
-        "task3_title": "Task 3. Connect encoder and change LED brightness",
+        "task3_title": "Task 3. Connect encoder and change LED3 brightness",
         "task3_instructions": [
-            "1. Find ENCODER in the box (refer image)",
-            "2. Insert it into the encoder connection point on the green PCB board",
-            "3. Turn the knob right until LED reaches full brightness",
-            "4. Then turn it back until LED is off again",
-            "5. If connected correctly, the LED brightness will change"
+            "1. Find the ENCODER in the box (see image)",
+            "2. Find the suitable connection point for the encoder on the green PCB board",
+            "3. Connect the encoder cable to this connection point",
+            "4. Turn the encoder knob left and right",
+            "5. If connected correctly, LED3 brightness will change"
         ],
         "task3_hint": "Hint: Encoder has a 4-wire cable",
         "brightness": "Brightness Level",
@@ -75,7 +77,16 @@ TEXTS = {
         "anonymous": "Anonymous",
         "today_results": "★ DAY {day} TOP 5 ★",
         "overall_results": "★ OVERALL TOP 5 ★",
-        "player_ranks": "Day rank: #{day_rank}    Overall rank: #{overall_rank}\n"
+        "player_ranks": "Day rank: #{day_rank}    Overall rank: #{overall_rank}\n",
+        "ready_title": "Check before starting",
+        "ready_message": (
+            "Before starting, please make sure all removable components are disconnected:\n\n"
+            "- Task 1 jumper wires\n"
+            "- Task 2 resistor\n"
+            "- Task 3 encoder\n\n"
+            "Your PCB should look like this."
+        ),
+        "pcb_ready": "START"
     },
 
     "fi": {
@@ -88,30 +99,31 @@ TEXTS = {
         ),
         "task1_title": "Tehtävä 1. Yhdistä painike",
         "task1_instructions": [
-            "1. Etsi BUTTON-liitäntäkohta ja BUTTON_1 vihreältä PCB-levyltä",
+            "1. Etsi liitäntäkohdat J2 ja J3 sekä BUTTON1-painike vihreältä PCB-levyltä",
             "2. Ota kaksi hyppylankaa laatikosta (katso kuva)",
-            "3. Yhdistä BUTTON_1 ja BUTTON-liitäntäkohta johdoilla",
-            "4. Paina painiketta"
+            "3. Yhdistä J2 ja J3 kahdella hyppylangalla PCB-levyyn painettujen valkoisten ohjeviivojen mukaisesti",
+            "4. Paina BUTTON1-painiketta"
         ],
         "task1_hint": "Vinkki: Jos painat painiketta eikä mitään tapahdu, tarkista johdot ja liitännät",
 
         "task2_title": "Tehtävä 2. Kytke vastus ja sytytä LED-valo",
         "task2_instructions": [
-            "1. Etsi vastus (RESISTOR) laatikosta (katso kuva)",
-            "2. Aseta se vastuksen liitäntäkohtaan vihreällä PCB-levyllä",
-            "3. Jos kytkentä on oikein, vastus tunnistetaan"
+            "1. Etsi liitäntäkohdat J4 ja J5 sekä LED2 vihreältä PCB-levyltä",
+            "2. Etsi vastus (RESISTOR) laatikosta (katso kuva)",
+            "3. Aseta vastus liitäntäkohtien J4 ja J5 väliin PCB-levyyn painetun valkoisen ohjeviivan mukaisesti",
+            "4. Jos kytkentä on oikein, vastus tunnistetaan ja LED2 syttyy"
         ],
         "task2_hint": "Vinkki: Voit laittaa vastuksen kumpaan suuntaan tahansa – kokeile molempia",
         "task2_connected": "KYTKETTY ✅ 😊",
         "task2_not_connected": "EI KYTKETTY ❌ ☹️",
 
-        "task3_title": "Tehtävä 3. Kytke ENCODER ja muuta valon kirkkautta",
+        "task3_title": "Tehtävä 3. Kytke ENCODER ja muuta LED3:n kirkkautta",
         "task3_instructions": [
             "1. Etsi ENCODER laatikosta (katso kuva)",
-            "2. Aseta se encoderin liitäntäkohtaan vihreällä PCB-levyllä",
-            "3. Käännä nuppia oikealle, kunnes LED saavuttaa täyden kirkkauden",
-            "4. Käännä sitten takaisin, kunnes LED sammuu",
-            "5. Jos kytkentä on oikein, LED-valon kirkkaus muuttuu"
+            "2. Etsi encoderille sopiva liitäntäkohta vihreältä PCB-levyltä",
+            "3. Kytke encoderin kaapeli tähän liitäntäkohtaan",
+            "4. Käännä encoderin nuppia vasemmalle ja oikealle",
+            "5. Jos kytkentä on oikein, LED3:n kirkkaus muuttuu"
         ],
         "task3_hint": "Vinkki: Encoderissa on 4-johtiminen kaapeli",
         "brightness": "Kirkkaustaso",
@@ -130,6 +142,15 @@ TEXTS = {
         "today_results": "★ PÄIVÄN {day} - TOP 5 ★",
         "overall_results": "★ KOKONAISTULOKSET – TOP 5 ★",
         "player_ranks": "Päivän sijoitus: #{day_rank}    Kokonaissijoitus: #{overall_rank}\n",
+        "ready_title": "Tarkista ennen aloitusta",
+        "ready_message": (
+            "Ennen aloitusta varmista, että kaikki irrotettavat osat ovat irti:\n\n"
+            "- Tehtävä 1 hyppylangat\n"
+            "- Tehtävä 2 vastus\n"
+            "- Tehtävä 3 encoder\n\n"
+            "PCB-levyn pitäisi näyttää tältä."
+        ),
+        "pcb_ready": "ALOITA"
     }
 }
 
@@ -345,7 +366,7 @@ def show_game(root, clear_screen, go_to_menu):
     ).pack(pady=(0, int(8 * scale)))
 
     # -------------------------------
-    # Task boxes
+    # Tasks boxes
     # -------------------------------
     tasks_frame = tk.Frame(main_frame, bg="white")
     tasks_frame.pack(pady=(0, int(8 * scale)))
@@ -424,7 +445,7 @@ def show_game(root, clear_screen, go_to_menu):
     )
 
     # -------------------------------
-    # Content area
+    # Content
     # -------------------------------
     content_frame = tk.Frame(main_frame, bg="white")
     content_frame.pack(fill="both", expand=True, pady=(0, int(3 * scale)))
@@ -436,12 +457,14 @@ def show_game(root, clear_screen, go_to_menu):
         for widget in content_frame.winfo_children():
             widget.destroy()
 
+
     def clear_start_tables():
         for widget in left_score_area.winfo_children():
             widget.destroy()
 
         for widget in right_score_area.winfo_children():
             widget.destroy()
+
 
     def make_start_score_table(parent, title, players):
         table_width = max(180, int(screen_width * 0.17))
@@ -538,6 +561,7 @@ def show_game(root, clear_screen, go_to_menu):
                 bg="white"
             ).grid(row=i + 1, column=2, padx=1, pady=1, sticky="nsew")
 
+
     def show_start_tables():
         clear_start_tables()
 
@@ -558,6 +582,7 @@ def show_game(root, clear_screen, go_to_menu):
             t["overall_results"],
             overall_players
         )
+
 
     def make_task_content(title, instructions, hint):
         clear_content()
@@ -634,6 +659,7 @@ def show_game(root, clear_screen, go_to_menu):
 
         return row_frame
 
+
     def update_timer():
         if hasattr(root, "start_time") and root.start_time is not None:
             if not timer_label.winfo_exists():
@@ -643,6 +669,7 @@ def show_game(root, clear_screen, go_to_menu):
             timer_label.config(text=f"Time: {elapsed:.1f} s")
 
             timer_job[0] = root.after(100, update_timer)
+
 
     def show_result_screen(player_name, total_time):
         clear_content()
@@ -680,6 +707,7 @@ def show_game(root, clear_screen, go_to_menu):
 
         tables_outer_frame = tk.Frame(content_frame, bg="white")
         tables_outer_frame.pack(pady=int(4 * scale))
+
 
         def make_table(parent, title, players):
             outer_border = tk.Frame(parent, bg="#87CEEB")
@@ -772,6 +800,102 @@ def show_game(root, clear_screen, go_to_menu):
             overall_players
         )
 
+
+    def show_ready_popup(player_name):
+        popup = tk.Toplevel(root)
+        popup.title(t["ready_title"])
+        popup.configure(bg="white")
+        popup.transient(root)
+        popup.grab_set()
+        popup.lift()
+        popup.attributes("-topmost", True)
+
+        popup_frame = tk.Frame(popup, bg="white")
+        popup_frame.pack(padx=18, pady=14)
+
+        tk.Label(
+            popup_frame,
+            text=t["ready_title"],
+            font=font(16, bold=True),
+            bg="white",
+            fg="#0B3D91"
+        ).pack(pady=(0, 8))
+
+        tk.Label(
+            popup_frame,
+            text=t["ready_message"],
+            font=font(11),
+            bg="white",
+            justify="left",
+            wraplength=int(screen_width * 0.35)
+        ).pack(pady=(0, 10))
+
+        try:
+            pcb_img = Image.open("ready_pcb.png")
+
+            max_img_width = int(screen_width * 0.28)
+            max_img_height = int(screen_height * 0.45)
+
+            iw, ih = pcb_img.size
+            img_scale = min(max_img_width / iw, max_img_height / ih)
+
+            new_w = int(iw * img_scale)
+            new_h = int(ih * img_scale)
+
+            pcb_img = pcb_img.resize((new_w, new_h), Image.LANCZOS)
+            pcb_photo = ImageTk.PhotoImage(pcb_img)
+
+            img_label = tk.Label(popup_frame, image=pcb_photo, bg="white")
+            img_label.image = pcb_photo
+            img_label.pack(pady=(0, 12))
+
+        except Exception as e:
+            tk.Label(
+                popup_frame,
+                text=f"Image not found: ready_pcb.png",
+                font=font(10),
+                bg="white",
+                fg="red"
+            ).pack(pady=(0, 12))
+
+            print("Ready PCB image error:", e)
+
+
+        def start_after_ok():
+            popup.grab_release()
+            popup.destroy()
+
+            root.player_name = player_name
+            root.start_time = time.time()
+
+            timer_label.pack(pady=(0, int(2 * scale)))
+            update_timer()
+
+            clear_start_tables()
+            show_task1()
+
+        tk.Button(
+            popup_frame,
+            text=t["pcb_ready"],
+            font=font(13, bold=True),
+            bg="#87CEEB",
+            width=14,
+            command=start_after_ok
+        ).pack(pady=(0, 4))
+
+        popup.update_idletasks()
+
+        popup_width = popup.winfo_width()
+        popup_height = popup.winfo_height()
+
+        x = int((popup.winfo_screenwidth() / 2) - (popup_width / 2))
+        y = int((popup.winfo_screenheight() / 2) - (popup_height / 2))
+
+        popup.geometry(f"+{x}+{y}")
+
+        popup.after(300, lambda: popup.attributes("-topmost", False))
+
+
     def show_description():
         clear_content()
         show_start_tables()
@@ -823,20 +947,14 @@ def show_game(root, clear_screen, go_to_menu):
         name_entry.pack(side="left", padx=(0, int(12 * scale)))
         name_entry.focus_set()
 
+
         def on_start():
             player_name = name_var.get().strip()
 
             if not player_name:
                 player_name = t["anonymous"]
 
-            root.player_name = player_name
-            root.start_time = time.time()
-
-            timer_label.pack(pady=(0, int(2 * scale)))
-            update_timer()
-
-            clear_start_tables()
-            show_task1()
+            show_ready_popup(player_name)
 
         name_entry.bind("<Return>", lambda event: on_start())
 
@@ -848,6 +966,7 @@ def show_game(root, clear_screen, go_to_menu):
             height=1,
             command=on_start
         ).pack(side="left")
+
 
     def show_popup():
         popup = tk.Toplevel(root)
@@ -902,6 +1021,7 @@ def show_game(root, clear_screen, go_to_menu):
     root.task2_done = False
     root.task3_done = False
 
+
     def on_task1_pressed():
         if root.task1_done:
             return
@@ -913,6 +1033,7 @@ def show_game(root, clear_screen, go_to_menu):
         root.after(0, show_popup)
         root.after(0, lambda: task1_box.config(bg=TASK_DONE_BG))
         root.after(1500, lambda: (root.cleanup_gpio(), show_task2()))
+
 
     def show_task1():
         root.screen = "game_task1"
@@ -930,6 +1051,7 @@ def show_game(root, clear_screen, go_to_menu):
         btn_task1 = Button(TASK1_PIN, pull_up=True)
         btn_task1.when_pressed = on_task1_pressed
         root.btn_task1 = btn_task1
+
 
     def show_task2():
         root.screen = "game_task2"
@@ -964,9 +1086,8 @@ def show_game(root, clear_screen, go_to_menu):
         led_task2 = LED(TASK2_LED_PIN)
         root.led_task2 = led_task2
 
-        # GPIO18 stays ON always
-
         led_task2.on()
+
 
         def check_connection():
             if not status_label.winfo_exists():
@@ -978,7 +1099,7 @@ def show_game(root, clear_screen, go_to_menu):
             try:
                 ad3_value = read_adc_average(adc3)
             except Exception as e:
-                print("ADC read error:", e)
+                print("ADC error:", e)
                 return
 
             print("Game Task 2 AD3:", round(ad3_value, 3))
@@ -1014,6 +1135,7 @@ def show_game(root, clear_screen, go_to_menu):
             root.after(300, check_connection)
 
         check_connection()
+
 
     def show_task3():
         root.screen = "game_task3"
@@ -1051,7 +1173,7 @@ def show_game(root, clear_screen, go_to_menu):
         bar_canvas.create_rectangle(x1, y1, x2, y2, outline="black", width=2)
         fill_bar = bar_canvas.create_rectangle(x1, y1, x1, y2, fill="skyblue", outline="")
 
-        led_task3 = PWMLED(LED_PIN)
+        led_task3 = PWMLED(TASK3_LED_PIN)
         led_task3.value = 0
         root.led_task3 = led_task3
 
@@ -1065,6 +1187,7 @@ def show_game(root, clear_screen, go_to_menu):
         reached_full = [False]
         returned_to_zero = [False]
         task3_completed = [False]
+
 
         def adjust_brightness():
             if sig_b.is_pressed:

@@ -1,7 +1,5 @@
 import tkinter as tk
-from gpiozero import Button
 from PIL import Image, ImageTk
-from task1 import show_task1
 from game import show_game
 
 TEXTS = {
@@ -56,7 +54,7 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
     main_frame.pack(expand=True, fill="both")
 
     # -------------------------------
-    # Banner - upper part
+    # Banner
     # -------------------------------
     banner_img = Image.open("task_banner.png")
 
@@ -82,7 +80,7 @@ def show_task_menu(root, clear_screen, main_menu, show_task1, show_task2, show_t
 
 
     # -------------------------------
-    # Buttons  (+ Choose task)
+    # Buttons
     # -------------------------------
     buttons_frame = tk.Frame(main_frame, bg="white")
     buttons_frame.pack(expand=True)

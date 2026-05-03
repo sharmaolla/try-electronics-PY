@@ -8,14 +8,10 @@ from task2 import show_task2
 from task3 import show_task3
 from menu import show_task_menu
 
-
-# -------------------------------
-# Decorative LEDs
-# -------------------------------
 DECOR_LED_PINS = [13, 19, 26]
 
 # -------------------------------
-# Helpers for dynamic screen size
+# Helpers
 # -------------------------------
 def get_scale():
     root.update_idletasks()
@@ -155,6 +151,7 @@ def show_under_construction():
         command=main_menu
     ).pack(pady=int(10 * scale))
 
+
 def ask_day():
     while True:
         root.update_idletasks()
@@ -198,6 +195,7 @@ def go_back_to_main():
 def hardware_back_pressed():
     root.after(0, go_back_to_main)
 
+
 def start_decorative_leds():
     root.decor_leds = []
 
@@ -207,7 +205,7 @@ def start_decorative_leds():
             led.value = 0
             root.decor_leds.append(led)
         except Exception as e:
-            print(f"Could not start decorative LED on GPIO {pin}: {e}")
+            print(f"Unavailable LED on GPIO {pin}: {e}")
 
     pattern = [
         [0.15, 0.00, 0.00],
@@ -235,11 +233,10 @@ def start_decorative_leds():
                 pass
 
         root.decor_step = (root.decor_step + 1) % len(pattern)
-
-        # Bigger number = slower. 450ms is calm and not distracting.
         root.after(450, animate)
 
     animate()
+
 
 def on_close():
     if hasattr(root, "decor_leds"):
@@ -265,8 +262,6 @@ def main_menu():
     main_frame = tk.Frame(root, bg="white")
     main_frame.pack(expand=True, fill="both")
 
-    # -------------------------------
-    # Banner
     img = Image.open("banner.png")
 
     banner_width = int(root.winfo_screenwidth() * 0.50)
@@ -283,9 +278,6 @@ def main_menu():
     banner_label.image = banner
     banner_label.pack(pady=int(10 * scale))
 
-    # -------------------------------
-    # Title
-    # -------------------------------
     tk.Label(
         main_frame,
         text="Choose Language",
@@ -294,8 +286,8 @@ def main_menu():
     ).pack(pady=int(15 * scale))
 
     tk.Label(
-        root,
-        text=f"Game day / Pelipäivä: {root.game_day}",
+        main_frame,
+        text=f"Day / Päivä: {root.game_day}",
         font=("Arial", 14, "bold"),
         bg="white",
         fg="gray"
@@ -326,16 +318,14 @@ def main_menu():
     ).pack(pady=int(8 * scale))
 
 
-
-
 # -------------------------------
 # Main app
 # -------------------------------
 root = tk.Tk()
 
-
 root.cleanup_gpio = cleanup_gpio
 root.go_main = main_menu
+
 root.go_task1 = lambda: show_task1(root, clear_screen, main_menu)
 root.go_task2 = lambda: show_task2(root, clear_screen, main_menu)
 root.go_task3 = lambda: show_task3(root, clear_screen, main_menu)
@@ -345,6 +335,8 @@ root.geometry("1000x600")
 root.minsize(480, 320)
 root.configure(bg="white")
 root.screen = "main"
+
+root.protocol("WM_DELETE_WINDOW", on_close)
 
 
 # -------------------------------
@@ -369,5 +361,3 @@ start_decorative_leds()
 ask_day()
 main_menu()
 root.mainloop()
-
-
